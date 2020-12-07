@@ -1,0 +1,8 @@
+bin/
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
+*.tex
+src/tw/
