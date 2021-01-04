@@ -51,7 +51,7 @@ class ButeDecisionProblemSolver {
         }
 
         TrieDataStructure visitedSTSs = STSsAndNds.size() >= MIN_LEN_FOR_TRIE ?
-                new NewTrie(n, rootDepth) :
+                new STSCollection(n, rootDepth) :
                 new ListOfSetAndNd();
 
         for (int i=STSsAndNds.size()-1; i>=0; i--) {
@@ -85,21 +85,6 @@ class ButeDecisionProblemSolver {
                     .unionWith(ndOfNewUnionOfSubtrees);
             ArrayList<SetAndNd> filteredSTSsAndNds = new ArrayList<>();
 
-            if (ndOfNewUnionOfSubtrees.cardinality() == rootDepth) {
-                for (int j=i+1; j<STSsAndNds.size(); j++) {
-                    SetAndNd candidate = STSsAndNds.get(j);
-                    if (!ndOfNewUnionOfSubtrees.equals(candidate.nd)) {
-                        break;
-                    }
-                    if (isStsAcceptable(candidate, newPossibleSTSRoots,
-                            ndOfNewUnionOfSubtrees, newUnionOfSubtreesAndNd,
-                            rootDepth)) {
-                        filteredSTSsAndNds.add(candidate);
-                        unionOfFilteredSets.or(candidate.set);
-                    }
-                }
-            }
-
             // TODO: store SetAndNd references in trie data structure
             ArrayList<SetAndNd> queryResults = visitedSTSs.query(
                     newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees);
@@ -132,10 +117,7 @@ class ButeDecisionProblemSolver {
                         newUnionOfSubtrees, ndOfNewUnionOfSubtrees, rootDepth,
                         newSTSsHashSet);
             }
-
-            if (rootDepth > STSsAndNds.get(i).nd.cardinality()) {
-                visitedSTSs.put(STSsAndNds.get(i));
-            }
+            visitedSTSs.put(STSsAndNds.get(i));
         }
     }
 
