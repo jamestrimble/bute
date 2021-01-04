@@ -33,8 +33,26 @@ class ButeDecisionProblemSolver {
                         XBitSet ndOfUnionOfSubtrees,
                         int rootDepth,
                         HashSet<XBitSet> newSTSsHashSet) {
-        if (STSsAndNds.isEmpty()) {
-            return;
+        for (int w = possibleSTSRoots.nextSetBit(0); w >= 0;
+                w = possibleSTSRoots.nextSetBit(w+1)) {
+            XBitSet adjVv = ndOfUnionOfSubtrees
+                    .unionWith(g.neighborSet[w])
+                    .subtract(unionOfSubtrees);
+            adjVv.clear(w);
+            if (adjVv.cardinality() < rootDepth) {
+                XBitSet STS = (XBitSet) unionOfSubtrees.clone();
+                STS.set(w);
+                if (!dom.vvDominatedBy[w].intersects(adjVv) &&
+                        !dom.vvThatDominate[w].intersects(STS) &&
+                        !setRoot.containsKey(STS)) {
+                    newSTSsHashSet.add(STS);
+                    setRoot.put(STS, w);
+                }
+            }
+        }
+
+        if (!STSsAndNds.isEmpty()) {
+            ++tmpCount2;
         }
 
         TrieDataStructure visitedSTSs = STSsAndNds.size() >= MIN_LEN_FOR_TRIE ?
@@ -50,23 +68,6 @@ class ButeDecisionProblemSolver {
             XBitSet ndOfNewUnionOfSubtrees = ndOfUnionOfSubtrees
                     .unionWith(nd)
                     .subtract(newUnionOfSubtrees);
-
-            for (int w = newPossibleSTSRoots.nextSetBit(0); w >= 0;
-                    w = newPossibleSTSRoots.nextSetBit(w+1)) {
-                XBitSet adjVv = ndOfNewUnionOfSubtrees
-                        .unionWith(g.neighborSet[w])
-                        .subtract(newUnionOfSubtrees);
-                if (adjVv.cardinality() <= rootDepth) {
-                    XBitSet STS = (XBitSet) newUnionOfSubtrees.clone();
-                    STS.set(w);
-                    if (!dom.vvDominatedBy[w].intersects(adjVv) &&
-                            !dom.vvThatDominate[w].intersects(STS) &&
-                            !setRoot.containsKey(STS)) {
-                        newSTSsHashSet.add(STS);
-                        setRoot.put(STS, w);
-                    }
-                }
-            }
 
             XBitSet newUnionOfSubtreesAndNd = newUnionOfSubtrees
                     .unionWith(ndOfNewUnionOfSubtrees);
@@ -121,17 +122,6 @@ class ButeDecisionProblemSolver {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         STSsAndNds.sort(new DescendingNdPopcountComparator());
-
-        for (int v=0; v<n; v++) {
-            XBitSet singleVtxSTS = new XBitSet();
-            singleVtxSTS.set(v);
-            if (g.neighborSet[v].cardinality() < rootDepth &&
-                    dom.adjVvDominatedBy[v].isEmpty() &&
-                    !setRoot.containsKey(singleVtxSTS)) {
-                newSTSsHashSet.add(singleVtxSTS);
-                setRoot.put(singleVtxSTS, v);
-            }
-        }
 
         XBitSet emptySet = new XBitSet();
         XBitSet fullSet = new XBitSet(n);
