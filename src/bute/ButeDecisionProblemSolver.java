@@ -25,19 +25,6 @@ class ButeDecisionProblemSolver {
         return g.getComponents(g.all.subtract(vv));
     }
 
-    boolean isStsAcceptable(SetAndNd candidate, XBitSet newPossibleSTSRoots,
-            XBitSet ndOfNewUnionOfSubtrees, XBitSet newUnionOfSubtreesAndNd,
-            int rootDepth) {
-        if (!candidate.nd.intersects(newPossibleSTSRoots))
-            return false;
-        if (ndOfNewUnionOfSubtrees.unionWith(candidate.nd).cardinality()
-                > rootDepth)
-            return false;
-        if (newUnionOfSubtreesAndNd.intersects(candidate.set))
-            return false;
-        return true;
-    }
-
     // TODO figure out why C program prints different parent array of solution
     void makeSTSsHelper(ArrayList<SetAndNd> STSsAndNds,
                         XBitSet possibleSTSRoots,
@@ -89,12 +76,15 @@ class ButeDecisionProblemSolver {
             ArrayList<SetAndNd> queryResults = visitedSTSs.query(
                     newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees);
             for (SetAndNd candidate : queryResults) {
-                if (isStsAcceptable(candidate, newPossibleSTSRoots,
-                        ndOfNewUnionOfSubtrees, newUnionOfSubtreesAndNd,
-                        rootDepth)) {
-                    filteredSTSsAndNds.add(candidate);
-                    unionOfFilteredSets.or(candidate.set);
-                }
+                if (!candidate.nd.intersects(newPossibleSTSRoots))
+                    continue;
+                if (ndOfNewUnionOfSubtrees.unionWith(candidate.nd).cardinality()
+                        > rootDepth)
+                    continue;
+                if (newUnionOfSubtreesAndNd.intersects(candidate.set))
+                    continue;
+                filteredSTSsAndNds.add(candidate);
+                unionOfFilteredSets.or(candidate.set);
             }
 
             for (int v = newPossibleSTSRoots.nextSetBit(0); v >= 0;
