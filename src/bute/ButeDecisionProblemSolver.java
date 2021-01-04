@@ -104,21 +104,17 @@ class ButeDecisionProblemSolver {
 
             XBitSet newUnionOfSubtreesAndNd = newUnionOfSubtrees
                     .unionWith(ndOfNewUnionOfSubtrees);
-            ArrayList<SetAndNd> filteredSTSsAndNds = new ArrayList<>();
 
             // TODO: store SetAndNd references in trie data structure
-            ArrayList<SetAndNd> queryResults = visitedSTSs.query(
-                    newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees);
-            for (SetAndNd candidate : queryResults) {
-                if (!candidate.nd.intersects(newPossibleSTSRoots))
-                    continue;
-                if (ndOfNewUnionOfSubtrees.unionWith(candidate.nd).cardinality()
-                        > rootDepth)
-                    continue;
-                if (newUnionOfSubtreesAndNd.intersects(candidate.set))
-                    continue;
-                filteredSTSsAndNds.add(candidate);
-            }
+            ArrayList<SetAndNd> filteredSTSsAndNds = visitedSTSs
+                    .query(newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees)
+                    .stream()
+                    .filter(item ->
+                        item.nd.intersects(newPossibleSTSRoots) &&
+                        ndOfNewUnionOfSubtrees.unionWith(item.nd).cardinality()
+                                <= rootDepth &&
+                        !newUnionOfSubtreesAndNd.intersects(item.set))
+                    .collect(Collectors.toCollection(ArrayList::new));
 
             filterRoots(newPossibleSTSRoots, filteredSTSsAndNds,
                     newUnionOfSubtrees, ndOfNewUnionOfSubtrees, rootDepth);
@@ -140,9 +136,8 @@ class ButeDecisionProblemSolver {
         ArrayList<SetAndNd> STSsAndNds = STSs
                 .stream()
                 .map(STS -> new SetAndNd(STS, findAdjacentVv(STS)))
+                .sorted(new DescendingNdPopcountComparator())
                 .collect(Collectors.toCollection(ArrayList::new));
-
-        STSsAndNds.sort(new DescendingNdPopcountComparator());
 
         XBitSet emptySet = new XBitSet();
         XBitSet fullSet = new XBitSet(n);
