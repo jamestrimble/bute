@@ -7,7 +7,6 @@ import tw.exact.Graph;
 import tw.exact.XBitSet;
 
 class ButeDecisionProblemSolver {
-    long tmpCount1;
     long tmpCount2;
     final Graph g;
     final int n;
