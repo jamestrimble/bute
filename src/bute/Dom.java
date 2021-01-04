@@ -5,18 +5,15 @@ import tw.exact.XBitSet;
 
 class Dom {
     XBitSet[] adjVvDominatedBy;
-    XBitSet[] adjVvThatDominate;
     XBitSet[] vvDominatedBy;
     XBitSet[] vvThatDominate;
     Dom(Graph g) {
         int n = g.n;
         adjVvDominatedBy = new XBitSet[n];
-        adjVvThatDominate = new XBitSet[n];
         vvDominatedBy = new XBitSet[n];
         vvThatDominate = new XBitSet[n];
         for (int i=0; i<n; i++) {
             adjVvDominatedBy[i] = new XBitSet();
-            adjVvThatDominate[i] = new XBitSet();
             vvDominatedBy[i] = new XBitSet();
             vvThatDominate[i] = new XBitSet();
         }
@@ -40,7 +37,6 @@ class Dom {
                     vvThatDominate[v].set(w);
                     if (g.neighborSet[w].get(v)) {
                         adjVvDominatedBy[w].set(v);
-                        adjVvThatDominate[v].set(w);
                     }
                 }
             }
