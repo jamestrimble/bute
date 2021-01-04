@@ -6,8 +6,8 @@ import java.util.Arrays;
 import tw.exact.XBitSet;
 
 class NewTrieCompressed implements TrieDataStructure, LatexPrintable {
-    private int target;
-    private TrieNodeCompressed root;
+    private final int target;
+    private final TrieNodeCompressed root;
     private int size;
 
     NewTrieCompressed(int n, int target) {
@@ -59,7 +59,7 @@ class NewTrieCompressed implements TrieDataStructure, LatexPrintable {
         System.out.println("\\forestset{  default preamble={  for tree={draw,rounded corners}  }}");
         System.out.println("\\begin{document}");
         System.out.println("\\begin{forest}");
-        root.printLatex(0, new ArrayList<Integer>(), featureFlags);
+        root.printLatex(0, new ArrayList<>(), featureFlags);
         System.out.println();
         System.out.println("\\end{forest}");
         System.out.println("\\end{document}");

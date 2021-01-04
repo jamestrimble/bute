@@ -13,7 +13,7 @@ import tw.exact.XBitSet;
 // are contiguous.
 class STSCollection implements TrieDataStructure {
     int target;
-    private NewTrie trie;
+    private final NewTrie trie;
     ArrayList<SetAndNd> itemsWithLargeNd = new ArrayList<>();
 
     public STSCollection(int n, int target) {

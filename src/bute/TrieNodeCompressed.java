@@ -9,7 +9,7 @@ class TrieNodeCompressed {
     private TrieNodeCompressed[] children = new TrieNodeCompressed[0];
     XBitSet subtrieIntersectionOfSSets;
     XBitSet subtrieIntersectionOfNSets;
-    int[] key = new int[0];
+    int[] key;
     private XBitSet[] SSets = new XBitSet[0];
 
     TrieNodeCompressed(int[] key, XBitSet initialIntersectionOfNSets,
@@ -25,7 +25,7 @@ class TrieNodeCompressed {
     }
 
     int commonPrefixLength(int[] a, int[] b) {
-        int minLen = a.length <= b.length ? a.length : b.length;
+        int minLen = Math.min(a.length, b.length);
         int retval = 0;
         for (int i=0; i<minLen; i++) {
             if (a[i] != b[i]) {

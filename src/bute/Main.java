@@ -1,7 +1,5 @@
 package bute;
 
-import java.util.*;
-
 import tw.exact.Graph;
 
 class Main {

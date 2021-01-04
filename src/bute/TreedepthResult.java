@@ -1,9 +1,7 @@
 package bute;
 
-import java.util.*;
-
 class TreedepthResult {
-    private boolean satisfied;
+    private final boolean satisfied;
     private int depth;
     private int[] parent;
 

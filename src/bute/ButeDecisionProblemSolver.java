@@ -9,11 +9,11 @@ import tw.exact.XBitSet;
 class ButeDecisionProblemSolver {
     long tmpCount1;
     long tmpCount2;
-    Graph g;
-    int n;
-    Dom dom;
-    int target;
-    HashMap<XBitSet, Integer> setRoot = new HashMap<XBitSet, Integer>();
+    final Graph g;
+    final int n;
+    final Dom dom;
+    final int target;
+    final HashMap<XBitSet, Integer> setRoot = new HashMap<>();
     static final int MIN_LEN_FOR_TRIE = 50;
 
     ButeDecisionProblemSolver(Graph g, Dom dom, int target) {
@@ -133,8 +133,7 @@ class ButeDecisionProblemSolver {
         makeSTSsHelper(STSsAndNds, fullSet, emptySet, emptySet, rootDepth,
                 newSTSsHashSet);
 
-        return newSTSsHashSet.stream()
-                .collect(Collectors.toCollection(ArrayList::new));
+        return new ArrayList<>(newSTSsHashSet);
     }
 
     XBitSet findAdjacentVv(XBitSet s) {
@@ -190,7 +189,7 @@ class ButeDecisionProblemSolver {
         return null;
     }
 
-    class DescendingNdPopcountComparator implements Comparator<SetAndNd> {
+    static class DescendingNdPopcountComparator implements Comparator<SetAndNd> {
         @Override
         public int compare(SetAndNd a, SetAndNd b) {
             int aPopcount = a.nd.cardinality();

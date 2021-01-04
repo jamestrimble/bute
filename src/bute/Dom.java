@@ -4,9 +4,9 @@ import tw.exact.Graph;
 import tw.exact.XBitSet;
 
 class Dom {
-    XBitSet[] adjVvDominatedBy;
-    XBitSet[] vvDominatedBy;
-    XBitSet[] vvThatDominate;
+    final XBitSet[] adjVvDominatedBy;
+    final XBitSet[] vvDominatedBy;
+    final XBitSet[] vvThatDominate;
     Dom(Graph g) {
         int n = g.n;
         adjVvDominatedBy = new XBitSet[n];

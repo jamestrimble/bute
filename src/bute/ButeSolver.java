@@ -1,12 +1,10 @@
 package bute;
 
-import java.util.*;
-
 import tw.exact.Graph;
 
 class ButeSolver {
-    Graph g;
-    int n;
+    final Graph g;
+    final int n;
 
     ButeSolver(Graph g) {
         this.g = g;

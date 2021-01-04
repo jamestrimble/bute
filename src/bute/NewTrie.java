@@ -1,13 +1,12 @@
 package bute;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import tw.exact.XBitSet;
 
 class NewTrie implements TrieDataStructure, LatexPrintable {
-    private int target;
-    private TrieNode root;
+    private final int target;
+    private final TrieNode root;
     private int size;
 
     public NewTrie(int n, int target) {
@@ -56,7 +55,7 @@ class NewTrie implements TrieDataStructure, LatexPrintable {
         System.out.println("\\forestset{  default preamble={  for tree={draw,rounded corners}  }}");
         System.out.println("\\begin{document}");
         System.out.println("\\begin{forest}");
-        root.printLatex(new ArrayList<Integer>(), featureFlags);
+        root.printLatex(new ArrayList<>(), featureFlags);
         System.out.println();
         System.out.println("\\end{forest}");
         System.out.println("\\end{document}");

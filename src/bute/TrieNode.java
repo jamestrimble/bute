@@ -9,7 +9,7 @@ class TrieNode {
     private TrieNode[] children = new TrieNode[0];
     XBitSet subtrieIntersectionOfSSets;
     XBitSet subtrieIntersectionOfNSets;
-    private int key;
+    private final int key;
     private XBitSet[] SSets = new XBitSet[0];
 
     TrieNode(int key, XBitSet initialIntersectionOfNSets,
