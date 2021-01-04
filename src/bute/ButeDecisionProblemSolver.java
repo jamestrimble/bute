@@ -47,6 +47,30 @@ class ButeDecisionProblemSolver {
         }
     }
 
+    void filterRoots(XBitSet newPossibleSTSRoots,
+            ArrayList<SetAndNd> filteredSTSsAndNds,
+            XBitSet newUnionOfSubtrees,
+            XBitSet ndOfNewUnionOfSubtrees,
+            int rootDepth) {
+        XBitSet unionOfFilteredSets = new XBitSet();
+        for (SetAndNd setAndNd : filteredSTSsAndNds) {
+            unionOfFilteredSets.or(setAndNd.set);
+        }
+        for (int v = newPossibleSTSRoots.nextSetBit(0); v >= 0;
+                v = newPossibleSTSRoots.nextSetBit(v+1)) {
+            XBitSet adjVv = ndOfNewUnionOfSubtrees
+                    .unionWith(g.neighborSet[v])
+                    .subtract(newUnionOfSubtrees)
+                    .subtract(unionOfFilteredSets);
+            adjVv.clear(v);
+            if (adjVv.cardinality() >= rootDepth ||
+                    !unionOfFilteredSets.unionWith(newUnionOfSubtrees)
+                    .isSuperset(dom.adjVvDominatedBy[v])) {
+                newPossibleSTSRoots.clear(v);
+            }
+        }
+    }
+
     // TODO figure out why C program prints different parent array of solution
     void makeSTSsHelper(ArrayList<SetAndNd> STSsAndNds,
                         XBitSet possibleSTSRoots,
@@ -70,7 +94,6 @@ class ButeDecisionProblemSolver {
                 new ListOfSetAndNd();
 
         for (int i=STSsAndNds.size()-1; i>=0; i--) {
-            XBitSet unionOfFilteredSets = new XBitSet();
             XBitSet s = STSsAndNds.get(i).set;
             XBitSet nd = STSsAndNds.get(i).nd;
             XBitSet newPossibleSTSRoots = possibleSTSRoots.intersectWith(nd);
@@ -95,22 +118,10 @@ class ButeDecisionProblemSolver {
                 if (newUnionOfSubtreesAndNd.intersects(candidate.set))
                     continue;
                 filteredSTSsAndNds.add(candidate);
-                unionOfFilteredSets.or(candidate.set);
             }
 
-            for (int v = newPossibleSTSRoots.nextSetBit(0); v >= 0;
-                    v = newPossibleSTSRoots.nextSetBit(v+1)) {
-                XBitSet adjVv = ndOfNewUnionOfSubtrees
-                        .unionWith(g.neighborSet[v])
-                        .subtract(newUnionOfSubtrees)
-                        .subtract(unionOfFilteredSets);
-                adjVv.clear(v);
-                if (adjVv.cardinality() >= rootDepth ||
-                        !unionOfFilteredSets.unionWith(newUnionOfSubtrees)
-                        .isSuperset(dom.adjVvDominatedBy[v])) {
-                    newPossibleSTSRoots.clear(v);
-                }
-            }
+            filterRoots(newPossibleSTSRoots, filteredSTSsAndNds,
+                    newUnionOfSubtrees, ndOfNewUnionOfSubtrees, rootDepth);
 
             if (!newPossibleSTSRoots.isEmpty()) {
                 filteredSTSsAndNds.sort(new DescendingNdPopcountComparator());
