@@ -7,6 +7,8 @@ import tw.exact.Graph;
 import tw.exact.XBitSet;
 
 class ButeDecisionProblemSolver {
+    long tmpCount1;
+    long tmpCount2;
     Graph g;
     int n;
     Dom dom;
@@ -44,9 +46,11 @@ class ButeDecisionProblemSolver {
                 STS.set(w);
                 if (!dom.vvDominatedBy[w].intersects(adjVv) &&
                         !dom.vvThatDominate[w].intersects(STS) &&
-                        !setRoot.containsKey(STS)) {
+                        !newSTSsHashSet.contains(STS)) {
                     newSTSsHashSet.add(STS);
-                    setRoot.put(STS, w);
+                    if (!setRoot.containsKey(STS)) {
+                        setRoot.put(STS, w);
+                    }
                 }
             }
         }
@@ -157,34 +161,31 @@ class ButeDecisionProblemSolver {
         ArrayList<XBitSet> STSs = new ArrayList<>();
 
         for (int i=target; i>=1; i--) {
-            ArrayList<XBitSet> newSTSs = makeSTSs(STSs, i);
+            int prevSetRootSize = setRoot.size();
+            STSs = makeSTSs(STSs, i);
 
-            if (newSTSs.size() == 0) {
+            if (setRoot.size() == prevSetRootSize) {
                 break;
             }
 
-            STSs.addAll(newSTSs);
+            System.err.println("# " + (setRoot.size() - prevSetRootSize));
+            System.err.println("## " + tmpCount2);
+            tmpCount2 = 0;
 
-            int k = 0;
-            for (int j=0; j<STSs.size(); j++) {
-                XBitSet adjacentVv = findAdjacentVv(STSs.get(j));
-                if (adjacentVv.cardinality() < i) {
-                    if (STSs.get(j).cardinality() + adjacentVv.cardinality() == n) {
-                        // TODO double-check this against C code
-                        int[] parent = new int[n];
-                        int parentVertex = -1;
-                        for (int w = adjacentVv.nextSetBit(0); w >= 0;
-                                w = adjacentVv.nextSetBit(w+1)) {
-                            parent[w] = parentVertex;
-                            parentVertex = w;
-                        }
-                        addParents(parent, STSs.get(j), parentVertex);
-                        return new TreedepthResult(target, parent);
+            for (XBitSet STS : STSs) {
+                XBitSet adjacentVv = findAdjacentVv(STS);
+                if (STS.cardinality() + adjacentVv.cardinality() == n) {
+                    int[] parent = new int[n];
+                    int parentVertex = -1;
+                    for (int w = adjacentVv.nextSetBit(0); w >= 0;
+                            w = adjacentVv.nextSetBit(w+1)) {
+                        parent[w] = parentVertex;
+                        parentVertex = w;
                     }
-                    STSs.set(k++, STSs.get(j));
+                    addParents(parent, STS, parentVertex);
+                    return new TreedepthResult(target, parent);
                 }
             }
-            STSs.subList(k, STSs.size()).clear();
         }
         return null;
     }
