@@ -26,6 +26,27 @@ class ButeDecisionProblemSolver {
         return g.getComponents(g.all.subtract(vv));
     }
 
+    void tryAddingStsRoot(int w, XBitSet unionOfSubtrees,
+            XBitSet ndOfUnionOfSubtrees, int rootDepth,
+            HashSet<XBitSet> newSTSsHashSet) {
+        XBitSet adjVv = ndOfUnionOfSubtrees
+                .unionWith(g.neighborSet[w])
+                .subtract(unionOfSubtrees);
+        adjVv.clear(w);
+        if (adjVv.cardinality() < rootDepth) {
+            XBitSet STS = (XBitSet) unionOfSubtrees.clone();
+            STS.set(w);
+            if (!dom.vvDominatedBy[w].intersects(adjVv) &&
+                    !dom.vvThatDominate[w].intersects(STS) &&
+                    !newSTSsHashSet.contains(STS)) {
+                newSTSsHashSet.add(STS);
+                if (!setRoot.containsKey(STS)) {
+                    setRoot.put(STS, w);
+                }
+            }
+        }
+    }
+
     // TODO figure out why C program prints different parent array of solution
     void makeSTSsHelper(ArrayList<SetAndNd> STSsAndNds,
                         XBitSet possibleSTSRoots,
@@ -36,22 +57,8 @@ class ButeDecisionProblemSolver {
                         HashSet<XBitSet> newSTSsHashSet) {
         for (int w = possibleSTSRoots.nextSetBit(0); w >= 0;
                 w = possibleSTSRoots.nextSetBit(w+1)) {
-            XBitSet adjVv = ndOfUnionOfSubtrees
-                    .unionWith(g.neighborSet[w])
-                    .subtract(unionOfSubtrees);
-            adjVv.clear(w);
-            if (adjVv.cardinality() < rootDepth) {
-                XBitSet STS = (XBitSet) unionOfSubtrees.clone();
-                STS.set(w);
-                if (!dom.vvDominatedBy[w].intersects(adjVv) &&
-                        !dom.vvThatDominate[w].intersects(STS) &&
-                        !newSTSsHashSet.contains(STS)) {
-                    newSTSsHashSet.add(STS);
-                    if (!setRoot.containsKey(STS)) {
-                        setRoot.put(STS, w);
-                    }
-                }
-            }
+            tryAddingStsRoot(w, unionOfSubtrees, ndOfUnionOfSubtrees, rootDepth,
+                    newSTSsHashSet);
         }
 
         if (!STSsAndNds.isEmpty()) {
