@@ -112,8 +112,6 @@ class ButeDecisionProblemSolver {
                 }
             }
 
-            filteredSTSsAndNds.sort(new DescendingNdPopcountComparator());
-
             for (int v = newPossibleSTSRoots.nextSetBit(0); v >= 0;
                     v = newPossibleSTSRoots.nextSetBit(v+1)) {
                 XBitSet adjVv = ndOfNewUnionOfSubtrees
@@ -129,6 +127,7 @@ class ButeDecisionProblemSolver {
             }
 
             if (!newPossibleSTSRoots.isEmpty()) {
+                filteredSTSsAndNds.sort(new DescendingNdPopcountComparator());
                 makeSTSsHelper(filteredSTSsAndNds, newPossibleSTSRoots,
                         newUnionOfSubtrees, ndOfNewUnionOfSubtrees, rootDepth,
                         newSTSsHashSet);
