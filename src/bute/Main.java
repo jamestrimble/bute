@@ -34,6 +34,9 @@ class Main {
         Graph g = Graph.readGraph(System.in);
         ButeSolver solver = new ButeSolver(g, options);
         TreedepthResult result = solver.solve();
+        System.err.println("# queries " + Stats.queries);
+        System.err.println("# helperCalls " + Stats.helperCalls);
+        System.err.println("# setCount " + Stats.setCount);
         System.out.println(result.getDepth());
         for (int v : result.getParent()) {
             System.out.println(v + 1);

@@ -7,7 +7,6 @@ import tw.exact.Graph;
 import tw.exact.XBitSet;
 
 class ButeDecisionProblemSolver {
-    long tmpCount2;
     final Graph g;
     final int n;
     final Dom dom;
@@ -81,14 +80,11 @@ class ButeDecisionProblemSolver {
                         XBitSet ndOfUnionOfSubtrees,
                         int rootDepth,
                         HashSet<XBitSet> newSTSsHashSet) {
+        ++Stats.helperCalls;
         for (int w = possibleSTSRoots.nextSetBit(0); w >= 0;
                 w = possibleSTSRoots.nextSetBit(w+1)) {
             tryAddingStsRoot(w, unionOfSubtrees, ndOfUnionOfSubtrees, rootDepth,
                     newSTSsHashSet);
-        }
-
-        if (!STSsAndNds.isEmpty()) {
-            ++tmpCount2;
         }
 
         TrieDataStructure visitedSTSs =
@@ -118,6 +114,7 @@ class ButeDecisionProblemSolver {
                                 <= rootDepth &&
                         !newUnionOfSubtreesAndNd.intersects(item.set))
                     .collect(Collectors.toCollection(ArrayList::new));
+            ++Stats.queries;
 
             filterRoots(newPossibleSTSRoots, filteredSTSsAndNds,
                     newUnionOfSubtrees, ndOfNewUnionOfSubtrees, rootDepth);
@@ -180,8 +177,6 @@ class ButeDecisionProblemSolver {
     }
 
     TreedepthResult solve() {
-        System.err.println("Solving decision problem " + target);
-
         ArrayList<XBitSet> STSs = new ArrayList<>();
 
         for (int i=target; i>=1; i--) {
@@ -202,9 +197,7 @@ class ButeDecisionProblemSolver {
                 break;
             }
 
-            System.err.println("# " + (setRoot.size() - prevSetRootSize));
-            System.err.println("## " + tmpCount2);
-            tmpCount2 = 0;
+            Stats.setCount += setRoot.size() - prevSetRootSize;
 
             if (i == 1) {
                 // This case is necessary if the graph is disconnected
