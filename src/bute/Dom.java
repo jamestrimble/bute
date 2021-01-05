@@ -4,10 +4,13 @@ import tw.exact.Graph;
 import tw.exact.XBitSet;
 
 class Dom {
+    final ButeOptions options;
     final XBitSet[] adjVvDominatedBy;
     final XBitSet[] vvDominatedBy;
     final XBitSet[] vvThatDominate;
-    Dom(Graph g) {
+
+    Dom(Graph g, ButeOptions options) {
+        this.options = options;
         int n = g.n;
         adjVvDominatedBy = new XBitSet[n];
         vvDominatedBy = new XBitSet[n];
@@ -16,6 +19,10 @@ class Dom {
             adjVvDominatedBy[i] = new XBitSet();
             vvDominatedBy[i] = new XBitSet();
             vvThatDominate[i] = new XBitSet();
+        }
+
+        if (!options.useDomination) {
+            return;
         }
 
         for (int v=0; v<n; v++) {

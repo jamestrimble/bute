@@ -12,14 +12,16 @@ class ButeDecisionProblemSolver {
     final int n;
     final Dom dom;
     final int target;
+    final ButeOptions options;
     final HashMap<XBitSet, Integer> setRoot = new HashMap<>();
     static final int MIN_LEN_FOR_TRIE = 50;
 
-    ButeDecisionProblemSolver(Graph g, Dom dom, int target) {
+    ButeDecisionProblemSolver(Graph g, Dom dom, int target, ButeOptions options) {
         this.g = g;
         this.n = g.n;
         this.dom = dom;
         this.target = target;
+        this.options = options;
     }
 
     ArrayList<XBitSet> getComponentsInInducedSubgraph(XBitSet vv) {
@@ -89,7 +91,8 @@ class ButeDecisionProblemSolver {
             ++tmpCount2;
         }
 
-        TrieDataStructure visitedSTSs = STSsAndNds.size() >= MIN_LEN_FOR_TRIE ?
+        TrieDataStructure visitedSTSs =
+                options.useTrie && STSsAndNds.size() >= MIN_LEN_FOR_TRIE ?
                 new STSCollection(n, rootDepth) :
                 new ListOfSetAndNd();
 
@@ -191,7 +194,9 @@ class ButeDecisionProblemSolver {
                     .map(STS -> new SetAndNd(STS, findAdjacentVv(STS)))
                     .sorted(new DescendingNdPopcountComparator())
                     .collect(Collectors.toCollection(ArrayList::new));
-            STSs = makeSTSs(STSsAndNds, i);
+            STSs = options.vertexDriven ?
+                    makeSTSsVertexDriven(STSsAndNds, i) :
+                    makeSTSs(STSsAndNds, i);
 
             if (setRoot.size() == prevSetRootSize) {
                 break;
