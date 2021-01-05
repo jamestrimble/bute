@@ -129,21 +129,31 @@ class ButeDecisionProblemSolver {
         }
     }
 
-    ArrayList<XBitSet> makeSTSs(ArrayList<XBitSet> STSs, int rootDepth) {
+    ArrayList<XBitSet> makeSTSs(ArrayList<SetAndNd> STSsAndNds, int rootDepth) {
         HashSet<XBitSet> newSTSsHashSet = new HashSet<>();
-        // TODO: always keep sets together with their neighbourhoods,
-        // avoiding the need to package them up here?
-        ArrayList<SetAndNd> STSsAndNds = STSs
-                .stream()
-                .map(STS -> new SetAndNd(STS, findAdjacentVv(STS)))
-                .sorted(new DescendingNdPopcountComparator())
-                .collect(Collectors.toCollection(ArrayList::new));
-
         XBitSet emptySet = new XBitSet();
         XBitSet fullSet = new XBitSet(n);
         fullSet.set(0, n);
         makeSTSsHelper(STSsAndNds, fullSet, emptySet, emptySet, rootDepth,
                 newSTSsHashSet);
+        return new ArrayList<>(newSTSsHashSet);
+    }
+
+    ArrayList<XBitSet> makeSTSsVertexDriven(ArrayList<SetAndNd> STSsAndNds, int rootDepth) {
+        HashSet<XBitSet> newSTSsHashSet = new HashSet<>();
+        for (int i=0; i<n; i++) {
+            XBitSet emptySet = new XBitSet();
+            final int i_ = i;
+            ArrayList<SetAndNd> filteredSets = STSsAndNds
+                .stream()
+                .filter(item -> item.nd.get(i_) &&
+                        !item.nd.intersects(dom.adjVvDominatedBy[i_]))
+                .collect(Collectors.toCollection(ArrayList::new));
+            XBitSet possibleRoot = new XBitSet();
+            possibleRoot.set(i);
+            makeSTSsHelper(filteredSets, possibleRoot, emptySet, emptySet, rootDepth,
+                    newSTSsHashSet);
+        }
 
         return new ArrayList<>(newSTSsHashSet);
     }
@@ -173,7 +183,15 @@ class ButeDecisionProblemSolver {
 
         for (int i=target; i>=1; i--) {
             int prevSetRootSize = setRoot.size();
-            STSs = makeSTSs(STSs, i);
+
+            // TODO: always keep sets together with their neighbourhoods,
+            // avoiding the need to package them up here?
+            ArrayList<SetAndNd> STSsAndNds = STSs
+                    .stream()
+                    .map(STS -> new SetAndNd(STS, findAdjacentVv(STS)))
+                    .sorted(new DescendingNdPopcountComparator())
+                    .collect(Collectors.toCollection(ArrayList::new));
+            STSs = makeSTSs(STSsAndNds, i);
 
             if (setRoot.size() == prevSetRootSize) {
                 break;
