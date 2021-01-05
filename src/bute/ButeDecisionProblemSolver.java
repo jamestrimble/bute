@@ -206,18 +206,36 @@ class ButeDecisionProblemSolver {
             System.err.println("## " + tmpCount2);
             tmpCount2 = 0;
 
-            for (XBitSet STS : STSs) {
-                XBitSet adjacentVv = findAdjacentVv(STS);
-                if (STS.cardinality() + adjacentVv.cardinality() == n) {
-                    int[] parent = new int[n];
-                    int parentVertex = -1;
-                    for (int w = adjacentVv.nextSetBit(0); w >= 0;
-                            w = adjacentVv.nextSetBit(w+1)) {
-                        parent[w] = parentVertex;
-                        parentVertex = w;
+            if (i == 1) {
+                // This case is necessary if the graph is disconnected
+                int totalSize = 0;
+                for (XBitSet STS : STSs) {
+                    totalSize += STS.cardinality();
+                }
+                if (totalSize < n) {
+                    return null;
+                }
+                int[] parent = new int[n];
+                for (XBitSet STS : STSs) {
+                    addParents(parent, STS, -1);
+                }
+                return new TreedepthResult(target, parent);
+            } else if (options.lookForTopChain) {
+                // TODO: perform this check each time an STS is found, in order
+                // to return the result more quickly
+                for (XBitSet STS : STSs) {
+                    XBitSet adjacentVv = findAdjacentVv(STS);
+                    if (STS.cardinality() + adjacentVv.cardinality() == n) {
+                        int[] parent = new int[n];
+                        int parentVertex = -1;
+                        for (int w = adjacentVv.nextSetBit(0); w >= 0;
+                                w = adjacentVv.nextSetBit(w+1)) {
+                            parent[w] = parentVertex;
+                            parentVertex = w;
+                        }
+                        addParents(parent, STS, parentVertex);
+                        return new TreedepthResult(target, parent);
                     }
-                    addParents(parent, STS, parentVertex);
-                    return new TreedepthResult(target, parent);
                 }
             }
         }
