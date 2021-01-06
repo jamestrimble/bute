@@ -2,7 +2,6 @@ package bute;
 
 import java.util.ArrayList;
 
-import tw.exact.XBitSet;
 
 // This class wraps a NewTrie, but has the following optimisation in order to save
 // time and memory.  If a SetAndNd added using put() has a neighbourhood containing
@@ -32,7 +31,7 @@ class STSCollection implements TrieDataStructure {
         }
     }
 
-    public ArrayList<SetAndNd> query(XBitSet querySUnionN, XBitSet neighbours) {
+    public ArrayList<SetAndNd> query(FastBitSet querySUnionN, FastBitSet neighbours) {
         ArrayList<SetAndNd> list = trie.query(querySUnionN, neighbours);
         if (!itemsWithLargeNd.isEmpty() && itemsWithLargeNd.get(0).nd.equals(neighbours)) {
             list.addAll(itemsWithLargeNd);

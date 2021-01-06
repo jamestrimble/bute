@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import tw.exact.XBitSet;
 
 class TestQuery {
     public static void main(String[] args) throws IOException {
@@ -23,8 +22,8 @@ class TestQuery {
             String[] sets = input.split(" ");
             String[] setSStrings = sets[0].split(",");
             String[] setNStrings = sets[1].split(",");
-            XBitSet setS = new XBitSet(n);
-            XBitSet setN = new XBitSet(n);
+            FastBitSet setS = new FastBitSet(n);
+            FastBitSet setN = new FastBitSet(n);
             for (String s : setSStrings) {
                 setS.set(Integer.parseInt(s));
             }
@@ -37,8 +36,8 @@ class TestQuery {
             String[] sets = input.split(" ");
             String[] setSStrings = sets[0].split(",");
             String[] setNStrings = sets[1].split(",");
-            XBitSet setS = new XBitSet(n);
-            XBitSet setN = new XBitSet(n);
+            FastBitSet setS = new FastBitSet(n);
+            FastBitSet setN = new FastBitSet(n);
             for (String s : setSStrings) {
                 setS.set(Integer.parseInt(s));
             }

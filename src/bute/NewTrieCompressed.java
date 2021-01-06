@@ -3,7 +3,6 @@ package bute;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import tw.exact.XBitSet;
 
 class NewTrieCompressed implements TrieDataStructure, LatexPrintable {
     private final int target;
@@ -12,17 +11,17 @@ class NewTrieCompressed implements TrieDataStructure, LatexPrintable {
 
     NewTrieCompressed(int n, int target) {
         this.target = target;
-        XBitSet initialIntersectionOfNSets = new XBitSet();
+        FastBitSet initialIntersectionOfNSets = new FastBitSet(n);
         initialIntersectionOfNSets.set(0, n);
-        XBitSet initialIntersectionOfSSets = new XBitSet();
+        FastBitSet initialIntersectionOfSSets = new FastBitSet(n);
         initialIntersectionOfSSets.set(0, n);
         root = new TrieNodeCompressed(new int[0], initialIntersectionOfNSets,
                 initialIntersectionOfSSets);
     }
 
     public void put(SetAndNd setAndNd) {
-        XBitSet SSet = setAndNd.set;
-        XBitSet NSet = setAndNd.nd;
+        FastBitSet SSet = setAndNd.set;
+        FastBitSet NSet = setAndNd.nd;
         root.subtrieIntersectionOfNSets.and(NSet);
         root.subtrieIntersectionOfSSets.and(SSet);
         TrieNodeCompressed node = root;
@@ -38,13 +37,13 @@ class NewTrieCompressed implements TrieDataStructure, LatexPrintable {
     }
 
     // for debugging
-    void showList(ArrayList<XBitSet> bitsets) {
-        for (XBitSet bs : bitsets) {
+    void showList(ArrayList<FastBitSet> bitsets) {
+        for (FastBitSet bs : bitsets) {
             System.out.println(bs);
         }
     }
 
-    public ArrayList<SetAndNd> query(XBitSet querySUnionN, XBitSet neighbours) {
+    public ArrayList<SetAndNd> query(FastBitSet querySUnionN, FastBitSet neighbours) {
         ArrayList<SetAndNd> list = new ArrayList<>();
         int k = target - neighbours.cardinality();
         if (k >= 0) {

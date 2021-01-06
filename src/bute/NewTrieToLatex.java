@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import tw.exact.XBitSet;
 
 class NewTrieToLatex {
     public static void main(String[] args) throws IOException {
@@ -20,8 +19,8 @@ class NewTrieToLatex {
             String[] sets = input.split(" ");
             String[] setSStrings = sets[0].split(",");
             String[] setNStrings = sets[1].split(",");
-            XBitSet setS = new XBitSet(n);
-            XBitSet setN = new XBitSet(n);
+            FastBitSet setS = new FastBitSet(n);
+            FastBitSet setN = new FastBitSet(n);
             for (String s : setSStrings) {
                 setS.set(Integer.parseInt(s));
             }

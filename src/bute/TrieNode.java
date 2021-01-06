@@ -3,28 +3,27 @@ package bute;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import tw.exact.XBitSet;
 
 class TrieNode {
     private TrieNode[] children = new TrieNode[0];
-    XBitSet subtrieIntersectionOfSSets;
-    XBitSet subtrieIntersectionOfNSets;
+    FastBitSet subtrieIntersectionOfSSets;
+    FastBitSet subtrieIntersectionOfNSets;
     private final int key;
-    private XBitSet[] SSets = new XBitSet[0];
+    private FastBitSet[] SSets = new FastBitSet[0];
 
-    TrieNode(int key, XBitSet initialIntersectionOfNSets,
-            XBitSet initialIntersectionOfSSets) {
+    TrieNode(int key, FastBitSet initialIntersectionOfNSets,
+            FastBitSet initialIntersectionOfSSets) {
         this.key = key;
         subtrieIntersectionOfNSets = initialIntersectionOfNSets;
         subtrieIntersectionOfSSets = initialIntersectionOfSSets;
     }
 
-    void addSSet(XBitSet SSet) {
+    void addSSet(FastBitSet SSet) {
         SSets = Arrays.copyOf(SSets, SSets.length + 1);
-        SSets[SSets.length - 1] = (XBitSet) SSet.clone();
+        SSets[SSets.length - 1] = new FastBitSet(SSet);
     }
 
-    TrieNode getOrAddChildNode(int key, XBitSet SSet, XBitSet NSet) {
+    TrieNode getOrAddChildNode(int key, FastBitSet SSet, FastBitSet NSet) {
         for (TrieNode child : children) {
             if (child.key == key) {
                 child.subtrieIntersectionOfNSets.and(NSet);
@@ -33,21 +32,21 @@ class TrieNode {
             }
         }
         // Node not found; add and return it
-        TrieNode node = new TrieNode(key, (XBitSet) NSet.clone(), (XBitSet) SSet.clone());
+        TrieNode node = new TrieNode(key, new FastBitSet(NSet), new FastBitSet(SSet));
         children = Arrays.copyOf(children, children.length + 1);
         children[children.length - 1] = node;
         return node;
     }
 
-    void query(XBitSet querySUnionN, XBitSet queryN, int k,
+    void query(FastBitSet querySUnionN, FastBitSet queryN, int k,
             int budget, ArrayList<SetAndNd> out_list) {
-        if (subtrieIntersectionOfNSets.subtract(queryN).cardinality() > k) {
+        if (subtrieIntersectionOfNSets.cardinalityOfDifference(queryN) > k) {
             return;
         }
         if (querySUnionN.intersects(subtrieIntersectionOfSSets)) {
             return;
         }
-        for (XBitSet SSet : SSets) {
+        for (FastBitSet SSet : SSets) {
             if (!querySUnionN.intersects(SSet)) {
                 SetAndNd elem = new SetAndNd(SSet, subtrieIntersectionOfNSets);
                 out_list.add(elem);
@@ -61,13 +60,13 @@ class TrieNode {
         }
     }
 
-    void printLatexBitset(XBitSet bitset, String colour) {
+    void printLatexBitset(FastBitSet bitset, String colour) {
         System.out.print("\\\\ [-1ex] \\scriptsize {\\color{" + colour + "} $");
         if (bitset.isEmpty()) {
             System.out.print("\\emptyset");
         } else {
             String comma = "";
-            for (int v = bitset.nextSetBit(0); v >= 0; v = bitset.nextSetBit(v+1)) {
+            for (int v : bitset.toArray()) {
                 System.out.print(comma + v);
                 comma = " ";
             }
@@ -99,7 +98,7 @@ class TrieNode {
         }
 
         if (0 != (featureFlags & 4)) {
-            for (XBitSet SSet : SSets) {
+            for (FastBitSet SSet : SSets) {
                 printLatexBitset(SSet, "blue!50");
             }
         }

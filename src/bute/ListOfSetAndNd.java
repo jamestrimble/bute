@@ -2,7 +2,6 @@ package bute;
 
 import java.util.ArrayList;
 
-import tw.exact.XBitSet;
 
 class ListOfSetAndNd implements TrieDataStructure {
     ArrayList<SetAndNd> list = new ArrayList<>();
@@ -11,7 +10,7 @@ class ListOfSetAndNd implements TrieDataStructure {
         list.add(setAndNd);
     }
 
-    public ArrayList<SetAndNd> query(XBitSet querySUnionN, XBitSet neighbours) {
+    public ArrayList<SetAndNd> query(FastBitSet querySUnionN, FastBitSet neighbours) {
         return list;
     }
 }

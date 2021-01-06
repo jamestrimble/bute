@@ -1,24 +1,23 @@
 package bute;
 
 import tw.exact.Graph;
-import tw.exact.XBitSet;
 
 class Dom {
     final ButeOptions options;
-    final XBitSet[] adjVvDominatedBy;
-    final XBitSet[] vvDominatedBy;
-    final XBitSet[] vvThatDominate;
+    final FastBitSet[] adjVvDominatedBy;
+    final FastBitSet[] vvDominatedBy;
+    final FastBitSet[] vvThatDominate;
 
     Dom(Graph g, ButeOptions options) {
         this.options = options;
         int n = g.n;
-        adjVvDominatedBy = new XBitSet[n];
-        vvDominatedBy = new XBitSet[n];
-        vvThatDominate = new XBitSet[n];
+        adjVvDominatedBy = new FastBitSet[n];
+        vvDominatedBy = new FastBitSet[n];
+        vvThatDominate = new FastBitSet[n];
         for (int i=0; i<n; i++) {
-            adjVvDominatedBy[i] = new XBitSet();
-            vvDominatedBy[i] = new XBitSet();
-            vvThatDominate[i] = new XBitSet();
+            adjVvDominatedBy[i] = new FastBitSet(n);
+            vvDominatedBy[i] = new FastBitSet(n);
+            vvThatDominate[i] = new FastBitSet(n);
         }
 
         if (!options.useDomination) {
@@ -28,10 +27,10 @@ class Dom {
         for (int v=0; v<n; v++) {
             for (int w=0; w<n; w++) {
                 if (w != v) {
-                    XBitSet v_row = (XBitSet) g.neighborSet[v].clone();
+                    FastBitSet v_row = new FastBitSet(n, g.neighborSet[v]);
                     v_row.set(v);
                     v_row.set(w);
-                    XBitSet w_row = (XBitSet) g.neighborSet[w].clone();
+                    FastBitSet w_row = new FastBitSet(n, g.neighborSet[w]);
                     w_row.set(v);
                     w_row.set(w);
                     if (!w_row.isSuperset(v_row)) {
