@@ -8,6 +8,7 @@ class Main {
         System.err.println("  --no-domination   Don't use domination");
         System.err.println("  --no-top-chain    Don't look for top chain");
         System.err.println("  --vertex-driven   Use vertex-driven variant");
+        System.err.println("  --print-stats     Print stats");
     }
 
     public static void main(String[] args) {
@@ -15,6 +16,7 @@ class Main {
         boolean useDomination = true;
         boolean lookForTopChain = true;
         boolean vertexDriven = false;
+        boolean printStats = false;
         for (String arg : args) {
             if (arg.equals("--no-trie")) {
                 useTrie = false;
@@ -24,6 +26,8 @@ class Main {
                 lookForTopChain = false;
             } else if (arg.equals("--vertex-driven")) {
                 vertexDriven = true;
+            } else if (arg.equals("--print-stats")) {
+                printStats = true;
             } else {
                 printHelp();
                 System.exit(0);
@@ -34,9 +38,12 @@ class Main {
         Graph g = Graph.readGraph(System.in);
         ButeSolver solver = new ButeSolver(g, options);
         TreedepthResult result = solver.solve();
-        System.err.println("# queries " + Stats.queries);
-        System.err.println("# helperCalls " + Stats.helperCalls);
-        System.err.println("# setCount " + Stats.setCount);
+        if (printStats) {
+            System.out.println("# queries " + Stats.queries);
+            System.out.println("# helperCalls " + Stats.helperCalls);
+            System.out.println("# lastDecisionProblemHelperCalls " + Stats.lastDecisionProblemHelperCalls);
+            System.out.println("# setCount " + Stats.setCount);
+        }
         System.out.println(result.getDepth());
         for (int v : result.getParent()) {
             System.out.println(v + 1);
