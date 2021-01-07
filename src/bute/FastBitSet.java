@@ -3,10 +3,11 @@ package bute;
 import tw.exact.XBitSet;
 
 class FastBitSet {
-    // The following three constants are from the Java BitSet source
+    // The following two constants are from the Java BitSet source
     private final static int ADDRESS_BITS_PER_WORD = 6;
     private final static int BITS_PER_WORD = 1 << ADDRESS_BITS_PER_WORD;
-    private final static int BIT_INDEX_MASK = BITS_PER_WORD - 1;
+
+    private final static long LONG_MSB = 1L << (BITS_PER_WORD - 1);
 
     private long[] words;
 
@@ -139,19 +140,25 @@ class FastBitSet {
     }
 
     int compareTo(FastBitSet other) {
-        for (int i=words.length<<ADDRESS_BITS_PER_WORD; --i>=0; ) {
-            boolean a = get(i);
-            boolean b = other.get(i);
-            if (a & !b) {
-                return 1;
-            }
-            if (!a & b) {
-                return -1;
+        for (int i=words.length; --i>=0; ) {
+            long word = words[i];
+            long otherWord = other.words[i];
+            while (word != otherWord) {
+                int nlz = Long.numberOfLeadingZeros(word);
+                int otherNlz = Long.numberOfLeadingZeros(otherWord);
+                if (nlz < otherNlz) {
+                    return 1;
+                } else if (nlz > otherNlz) {
+                    return -1;
+                } else {
+                    long bitMask = LONG_MSB >>> nlz;
+                    word ^= bitMask;
+                    otherWord ^= bitMask;
+                }
             }
         }
         return 0;
     }
-
 
     public boolean equals(Object other) {
         if (!(other instanceof FastBitSet)) {
