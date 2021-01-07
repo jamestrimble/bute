@@ -116,15 +116,15 @@ class ButeDecisionProblemSolver {
                     .unionWith(ndOfNewUnionOfSubtrees);
 
             // TODO: store SetAndNd references in trie data structure
-            ArrayList<SetAndNd> filteredSTSsAndNds = visitedSTSs
-                    .query(newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees)
-                    .stream()
-                    .filter(item ->
-                        item.nd.intersects(newPossibleSTSRoots) &&
+            ArrayList<SetAndNd> filteredSTSsAndNds = new ArrayList<>();
+            for (SetAndNd item : visitedSTSs.query(newUnionOfSubtreesAndNd, ndOfNewUnionOfSubtrees)) {
+                if (item.nd.intersects(newPossibleSTSRoots) &&
                         ndOfNewUnionOfSubtrees.unionWith(item.nd).cardinality()
                                 <= rootDepth &&
-                        !newUnionOfSubtreesAndNd.intersects(item.set))
-                    .collect(Collectors.toCollection(ArrayList::new));
+                        !newUnionOfSubtreesAndNd.intersects(item.set)) {
+                    filteredSTSsAndNds.add(item);
+                }
+            }
             ++Stats.queries;
 
             filterRoots(newPossibleSTSRoots, filteredSTSsAndNds,
