@@ -143,18 +143,8 @@ class FastBitSet {
         for (int i=words.length; --i>=0; ) {
             long word = words[i];
             long otherWord = other.words[i];
-            while (word != otherWord) {
-                int nlz = Long.numberOfLeadingZeros(word);
-                int otherNlz = Long.numberOfLeadingZeros(otherWord);
-                if (nlz < otherNlz) {
-                    return 1;
-                } else if (nlz > otherNlz) {
-                    return -1;
-                } else {
-                    long bitMask = LONG_MSB >>> nlz;
-                    word ^= bitMask;
-                    otherWord ^= bitMask;
-                }
+            if (word != otherWord) {
+                return Long.compareUnsigned(word, otherWord);
             }
         }
         return 0;
