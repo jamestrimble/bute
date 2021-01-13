@@ -14,10 +14,10 @@ int m = 0;
 #define PASTE(a,b) PASTE_HELPER(a,b)
 
 // If you use these macros, don't modify bitset while iterating over it!
-#define FOR_EACH_IN_BITSET_HELPER(v, bitset, i, sw, x) \
+#define FOR_EACH_IN_BITSET_HELPER(v, bitset, m, i, sw, x) \
            for (int i=0;i<m;i++) {setword sw=bitset[i]; while (sw) {int x; TAKEBIT(x, sw); int v=i*WORDSIZE+x;
-#define FOR_EACH_IN_BITSET(v, bitset) \
-           FOR_EACH_IN_BITSET_HELPER(v, bitset, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
+#define FOR_EACH_IN_BITSET(v, bitset, m) \
+           FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
 void set_first_k_bits(setword *bitset, int k)
@@ -226,13 +226,15 @@ struct hash_set
     int M;
     int sz;
     struct hash_chain_element **chain_heads;
+    int m;
 };
 
-void hash_init(struct hash_set *s)
+void hash_init(struct hash_set *s, int m)
 {
     s->M = 1;
     s->sz = 0;
     s->chain_heads = calloc(s->M, sizeof *s->chain_heads);
+    s->m = m;
 }
 
 // Based on https://gist.github.com/badboy/6267743
@@ -579,7 +581,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
     setword *visited = get_empty_bitset();
     setword *vv_in_prev_components = get_empty_bitset();
     int *queue = malloc(G.n * sizeof *queue);
-    FOR_EACH_IN_BITSET(v, vv)
+    FOR_EACH_IN_BITSET(v, vv, G.m)
         if (ISELEMENT(visited, v))
             continue;
         int queue_len = 0;
@@ -587,7 +589,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
         queue[queue_len++] = v;
         while (queue_len) {
             int u = queue[--queue_len];
-            FOR_EACH_IN_BITSET(w, GRAPHROW(G.g, u, G.m))
+            FOR_EACH_IN_BITSET(w, GRAPHROW(G.g, u, G.m), G.m)
                 if (ISELEMENT(vv, w) && !ISELEMENT(visited, w)) {
                     ADDELEMENT(visited, w);
                     queue[queue_len++] = w;
@@ -613,7 +615,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
 void find_adjacent_vv(setword *s, struct Graph G, setword *adj_vv)
 {
     clear_bitset(adj_vv);
-    FOR_EACH_IN_BITSET(v, s)
+    FOR_EACH_IN_BITSET(v, s, G.m)
         for (int k=0; k<G.m; k++) {
             adj_vv[k] |= GRAPHROW(G.g, v, G.m)[k];
         }
@@ -681,7 +683,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         bitset_addall(nd_of_new_union_of_subtrees, filtered_leafysets[i].nd);
         bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees);
 
-        FOR_EACH_IN_BITSET(w, new_possible_leafyset_roots)
+        FOR_EACH_IN_BITSET(w, new_possible_leafyset_roots, G.m)
             setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
             bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m));
             bitset_removeall(adj_vv, new_union_of_subtrees);
@@ -751,7 +753,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         qsort(further_filtered_leafysets, further_filtered_leafysets_len, sizeof *further_filtered_leafysets, cmp_nd_popcount_desc);
 
         setword *adj_vv = get_bitset();
-        FOR_EACH_IN_BITSET(v, new_possible_leafyset_roots)
+        FOR_EACH_IN_BITSET(v, new_possible_leafyset_roots, G.m)
             bitset_union(adj_vv, nd_of_new_union_of_subtrees, GRAPHROW(G.g,v,G.m));
             bitset_removeall(adj_vv, new_union_of_subtrees);
             DELELEMENT(adj_vv, v);
@@ -782,7 +784,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             if (root_depth > popcount(filtered_leafysets[i].nd)) {
                 if (i == filtered_leafysets_len-1 || !bitsets_are_equal(filtered_leafysets[i].nd, filtered_leafysets[i+1].nd)) {
                     int pos = 0;
-                    FOR_EACH_IN_BITSET(w, filtered_leafysets[i].nd)
+                    FOR_EACH_IN_BITSET(w, filtered_leafysets[i].nd, G.m)
                         nd_arr[pos++] = w;
                     END_FOR_EACH_IN_BITSET
                     nd_arr[pos] = -1;
@@ -807,9 +809,9 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         int root_depth, struct hash_set *set_root, int *new_leafysets_len)
 {
     struct hash_set new_leafysets_hash_set;
-    hash_init(&new_leafysets_hash_set);
+    hash_init(&new_leafysets_hash_set, G.m);
     struct hash_set leafysets_as_set;
-    hash_init(&leafysets_as_set);
+    hash_init(&leafysets_as_set, G.m);
     struct SetAndNeighbourhood *leafysets_and_nds = malloc(leafysets_len * sizeof *leafysets_and_nds);
     for (int i=0; i<leafysets_len; i++) {
         hash_add(&leafysets_as_set, leafysets[i], 1);
@@ -891,7 +893,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
 {
     bool retval = false;
     struct hash_set set_root;
-    hash_init(&set_root);
+    hash_init(&set_root, G.m);
 
     setword **leafysets = malloc(G.n * sizeof *leafysets);
     int leafysets_len = 0;
@@ -912,7 +914,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
         leafysets_len = leafysets_len + new_leafysets_len;
 
         struct hash_set leafysets_as_set;
-        hash_init(&leafysets_as_set);
+        hash_init(&leafysets_as_set, G.m);
         for (int i=0; i<leafysets_len; i++) {
             hash_add(&leafysets_as_set, leafysets[i], 1);
         }
@@ -925,7 +927,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
                 if (!retval && popcount(leafysets[i]) + popcount(adj_vv) == G.n) {
                     retval = true;
                     int parent_vertex = -1;
-                    FOR_EACH_IN_BITSET(w, adj_vv)
+                    FOR_EACH_IN_BITSET(w, adj_vv, G.m)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
