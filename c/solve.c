@@ -575,6 +575,7 @@ struct Graph
 {
     graph *g;
     int n;
+    int m;   // number of words needed for a bitset containing n elements
 };
 
 /*************************************/
@@ -587,31 +588,31 @@ struct Dom
     int n;
 };
 
-void Dom_init(struct Dom *dom, int n, graph *g)
+void Dom_init(struct Dom *dom, struct Graph G)
 {
-    dom->n = n;
-    dom->adj_vv_dominated_by = malloc(n * sizeof *dom->adj_vv_dominated_by);
-    dom->vv_dominated_by = malloc(n * sizeof *dom->vv_dominated_by);
-    dom->vv_that_dominate = malloc(n * sizeof *dom->vv_that_dominate);
-    for (int v=0; v<n; v++) {
+    dom->n = G.n;
+    dom->adj_vv_dominated_by = malloc(G.n * sizeof *dom->adj_vv_dominated_by);
+    dom->vv_dominated_by = malloc(G.n * sizeof *dom->vv_dominated_by);
+    dom->vv_that_dominate = malloc(G.n * sizeof *dom->vv_that_dominate);
+    for (int v=0; v<G.n; v++) {
         dom->adj_vv_dominated_by[v] = get_empty_bitset();
         dom->vv_dominated_by[v] = get_empty_bitset();
         dom->vv_that_dominate[v] = get_empty_bitset();
     }
-    for (int v=0; v<n; v++) {
-        for (int w=0; w<n; w++) {
+    for (int v=0; v<G.n; v++) {
+        for (int w=0; w<G.n; w++) {
             if (w != v) {
-                setword *nd_of_v_and_v_and_w = get_copy_of_bitset(GRAPHROW(g, v, m));
+                setword *nd_of_v_and_v_and_w = get_copy_of_bitset(GRAPHROW(G.g, v, m));
                 ADDELEMENT(nd_of_v_and_v_and_w, v);
                 ADDELEMENT(nd_of_v_and_v_and_w, w);
-                setword *nd_of_w_and_v_and_w = get_copy_of_bitset(GRAPHROW(g, w, m));
+                setword *nd_of_w_and_v_and_w = get_copy_of_bitset(GRAPHROW(G.g, w, m));
                 ADDELEMENT(nd_of_w_and_v_and_w, v);
                 ADDELEMENT(nd_of_w_and_v_and_w, w);
                 if (bitset_is_superset(nd_of_w_and_v_and_w, nd_of_v_and_v_and_w)) {
                     if (!bitsets_are_equal(nd_of_v_and_v_and_w, nd_of_w_and_v_and_w) || v < w) {
                         ADDELEMENT(dom->vv_dominated_by[w], v);
                         ADDELEMENT(dom->vv_that_dominate[v], w);
-                        if (ISELEMENT(GRAPHROW(g, w, m), v)) {
+                        if (ISELEMENT(GRAPHROW(G.g, w, m), v)) {
                             ADDELEMENT(dom->adj_vv_dominated_by[w], v);
                         }
                     }
@@ -724,19 +725,19 @@ int cmp_nd_popcount_desc(const void *a, const void *b) {
 #define MIN_LEN_FOR_TRIE 50
 
 void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int filtered_leafysets_len, struct hash_set *leafysets_as_set,
-        graph *g, int n, struct Dom *dom,
-        setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees, int root_depth, struct hash_set *set_root, struct hash_set *new_leafysets_hash_set)
+        struct Graph G, struct Dom *dom, setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
+        int root_depth, struct hash_set *set_root, struct hash_set *new_leafysets_hash_set)
 {
     if (!filtered_leafysets_len) {
         return;
     }
     struct Trie trie;
     if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE)
-        trie_init(&trie, n);
+        trie_init(&trie, G.n);
     int *almost_subset_end_positions = malloc(filtered_leafysets_len * sizeof *almost_subset_end_positions);
     bool *leafyset_is_first_of_equal_nd_run = calloc(filtered_leafysets_len, sizeof *leafyset_is_first_of_equal_nd_run);
 
-    int *nd_arr = malloc((n+1) * sizeof *nd_arr);
+    int *nd_arr = malloc((G.n+1) * sizeof *nd_arr);
 
     struct SetAndNeighbourhood *further_filtered_leafysets = malloc(filtered_leafysets_len * sizeof *further_filtered_leafysets);
 
@@ -754,7 +755,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         FOR_EACH_IN_BITSET(w, new_possible_leafyset_roots)
             setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
-            bitset_addall(adj_vv, GRAPHROW(g, w, m));
+            bitset_addall(adj_vv, GRAPHROW(G.g, w, m));
             bitset_removeall(adj_vv, new_union_of_subtrees);
             if (popcount(adj_vv) <= root_depth) {
                 setword *leafyset = get_copy_of_bitset(new_union_of_subtrees);
@@ -823,7 +824,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         setword *adj_vv = get_bitset();
         FOR_EACH_IN_BITSET(v, new_possible_leafyset_roots)
-            bitset_union(adj_vv, nd_of_new_union_of_subtrees, GRAPHROW(g,v,m));
+            bitset_union(adj_vv, nd_of_new_union_of_subtrees, GRAPHROW(G.g,v,m));
             bitset_removeall(adj_vv, new_union_of_subtrees);
             DELELEMENT(adj_vv, v);
             bitset_removeall(adj_vv, new_big_union);
@@ -834,7 +835,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         if (!isempty(new_possible_leafyset_roots)) {
             make_leafysets_helper(further_filtered_leafysets, further_filtered_leafysets_len, leafysets_as_set,
-                    g, n, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_set);
+                    G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_set);
         }
 
         free_bitset(adj_vv);
@@ -875,7 +876,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
 int *vtx_num_appearances_in_leafysets;
 
-setword **make_leafysets(setword **leafysets, int leafysets_len, graph *g, int n,
+setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         struct Dom *dom,
         int root_depth, struct hash_set *set_root, int *new_leafysets_len)
 {
@@ -888,15 +889,15 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, graph *g, int n
         hash_add(&leafysets_as_set, leafysets[i], 1);
         leafysets_and_nds[i].set = leafysets[i];
         leafysets_and_nds[i].nd = get_bitset();
-        find_adjacent_vv(leafysets[i], g, leafysets_and_nds[i].nd);
+        find_adjacent_vv(leafysets[i], G.g, leafysets_and_nds[i].nd);
     }
 
     qsort(leafysets_and_nds, leafysets_len, sizeof *leafysets_and_nds, cmp_nd_popcount_desc);
 
-    for (int v=0; v<n; v++) {
+    for (int v=0; v<G.n; v++) {
         setword *single_vtx_leafyset = get_empty_bitset();
         ADDELEMENT(single_vtx_leafyset, v);
-        if (popcount(GRAPHROW(g, v, m)) < root_depth && isempty(dom->adj_vv_dominated_by[v])
+        if (popcount(GRAPHROW(G.g, v, m)) < root_depth && isempty(dom->adj_vv_dominated_by[v])
                 && !hash_iselement(set_root, single_vtx_leafyset)) {
             hash_add(&new_leafysets_hash_set, single_vtx_leafyset, 1);
             hash_add(set_root, single_vtx_leafyset, v);
@@ -906,7 +907,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, graph *g, int n
 
     setword *empty_set = get_empty_bitset();
     setword *full_set = get_bitset();
-    set_first_k_bits(full_set, n);
+    set_first_k_bits(full_set, G.n);
     struct SetAndNeighbourhood *filtered_leafysets = malloc(leafysets_len * sizeof *filtered_leafysets);
     int filtered_leafysets_len = 0;
     for (int i=0; i<leafysets_len; i++) {
@@ -914,7 +915,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, graph *g, int n
     }
 
     make_leafysets_helper(filtered_leafysets, filtered_leafysets_len, &leafysets_as_set,
-            g, n, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_set);
+            G, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_set);
     free(filtered_leafysets);
     free_bitset(empty_set);
     free_bitset(full_set);
@@ -960,20 +961,20 @@ void add_parents(int *parent, graph *g, struct hash_set *set_root, setword *s, i
     free_bitset(vv_in_child_subtrees);
 }
 
-bool solve(graph *g, int n, struct Dom *dom, int target, int *parent)
+bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
 {
     bool retval = false;
     struct hash_set set_root;
     hash_init(&set_root);
 
-    setword **leafysets = malloc(n * sizeof *leafysets);
+    setword **leafysets = malloc(G.n * sizeof *leafysets);
     int leafysets_len = 0;
 
     for (int root_depth=target; root_depth>=1; root_depth--) {
 //        printf("root depth %d\n", root_depth);
 //        printf(" %d\n", leafysets_len);
         int new_leafysets_len = 0;
-        setword **new_leafysets = make_leafysets(leafysets, leafysets_len, g, n, dom, root_depth, &set_root, &new_leafysets_len);
+        setword **new_leafysets = make_leafysets(leafysets, leafysets_len, G, dom, root_depth, &set_root, &new_leafysets_len);
         if (new_leafysets_len == 0) {
             free(new_leafysets);
             break;
@@ -993,16 +994,16 @@ bool solve(graph *g, int n, struct Dom *dom, int target, int *parent)
         int k = 0;
         for (int i=0; i<leafysets_len; i++) {
             setword *adj_vv = get_bitset();
-            find_adjacent_vv(leafysets[i], g, adj_vv);
+            find_adjacent_vv(leafysets[i], G.g, adj_vv);
             if (popcount(adj_vv) < root_depth) {
-                if (!retval && popcount(leafysets[i]) + popcount(adj_vv) == n) {
+                if (!retval && popcount(leafysets[i]) + popcount(adj_vv) == G.n) {
                     retval = true;
                     int parent_vertex = -1;;
                     FOR_EACH_IN_BITSET(w, adj_vv)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
-                    add_parents(parent, g, &set_root, leafysets[i], parent_vertex);
+                    add_parents(parent, G.g, &set_root, leafysets[i], parent_vertex);
                 }
                 leafysets[k++] = leafysets[i];
             } else {
@@ -1060,18 +1061,18 @@ struct Graph read_graph()
             ++num_edges_read;
         }
     }
-    return (struct Graph) {g, n};
+    return (struct Graph) {g, n, m};
 }
 
 int optimise(struct Graph G, int *parent)
 {
     struct Dom dom;
-    Dom_init(&dom, G.n, G.g);
+    Dom_init(&dom, G);
 
     int target = 0;
     for ( ; target<=G.n; target++) {
 //        printf("target %d\n", target);
-        bool result = solve(G.g, G.n, &dom, target, parent);
+        bool result = solve(G, &dom, target, parent);
         if (result) {
             break;
         }
