@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
 #define BUFFERSIZE 1024
 
@@ -136,14 +135,6 @@ int popcount_of_union(setword const *vv, setword const *ww)
     for (int i=0; i<m; i++)
         count += POPCOUNT(vv[i] | ww[i]);
     return count;
-}
-
-int firstelement(setword const *vv)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i])
-            return FIRSTBITNZ(vv[i]) + i * WORDSIZE;
-    return -1;
 }
 
 /* We have a free-list of bitsets */
@@ -307,21 +298,6 @@ void hash_add(struct hash_set *s, setword * key, int val)
     }
 }
 
-// Assumption: key is in s
-void hash_delete(struct hash_set *s, setword *key)
-{
-    unsigned h = hash(key) % s->M;
-    struct hash_chain_element **p = &s->chain_heads[h];
-    while (!bitsets_are_equal((*p)->key, key)) {
-        p = &(*p)->next;
-    }
-    // p points to a pointer to the element containing key
-    struct hash_chain_element *new_next = (*p)->next;
-    free(*p);
-    *p = new_next;
-    --s->sz;
-}
-
 bool hash_get_val(struct hash_set *s, setword *key, int *val)
 {
     unsigned h = hash(key) % s->M;
@@ -340,48 +316,6 @@ bool hash_iselement(struct hash_set *s, setword *key)
 {
     int junk;
     return hash_get_val(s, key, &junk);
-}
-
-void hash_add_or_update(struct hash_set *s, setword * key, int val)
-{
-    unsigned h = hash(key) % s->M;
-    struct hash_chain_element *p = s->chain_heads[h];
-    while (p) {
-        if (bitsets_are_equal(p->key, key)) {
-            p->val = val;
-            return;
-        }
-        p = p->next;
-    }
-
-    struct hash_chain_element *elem = malloc(sizeof *elem + m * sizeof(setword));
-    for (int k=0; k<m; k++)
-        elem->key[k] = key[k];
-    elem->val = val;
-    elem->next = s->chain_heads[h];
-    s->chain_heads[h] = elem;
-    ++s->sz;
-    
-    if (s->sz > (s->M + 1) / 2) {
-        hash_grow(s);
-    }
-}
-
-void hash_print_all(struct hash_set *s)
-{
-    for (int i=0; i<s->M; i++) {
-        printf("%d:  ", i);
-        struct hash_chain_element *p = s->chain_heads[i];
-        while (p) {
-            for (int i=0; i<m * 64; i++) {
-                printf("%d", ISELEMENT(p->key, i));
-            }
-            printf(",%d ", p->val);
-            p = p->next;
-        }
-        printf("\n");
-    }
-    printf("\n");
 }
 
 setword ** hash_set_to_list(struct hash_set *s)
@@ -867,8 +801,6 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
     free(leafyset_is_first_of_equal_nd_run);
     free(nd_arr);
 }
-
-int *vtx_num_appearances_in_leafysets;
 
 setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         struct Dom *dom,
