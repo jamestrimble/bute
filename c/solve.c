@@ -1,6 +1,5 @@
 #include "bitset.h"
 
-#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -11,12 +10,6 @@
 
 int m = 0;
 
-long tmp_counter = 0;
-
-int tmpx = 0;
-
-setword allmask[64];
-
 //https://stackoverflow.com/a/10380191/3347737
 #define PASTE_HELPER(a,b) a ## b
 #define PASTE(a,b) PASTE_HELPER(a,b)
@@ -26,10 +19,6 @@ setword allmask[64];
            for (int i=0;i<m;i++) {setword sw=bitset[i]; while (sw) {int x; TAKEBIT(x, sw); int v=i*WORDSIZE+x;
 #define FOR_EACH_IN_BITSET(v, bitset) \
            FOR_EACH_IN_BITSET_HELPER(v, bitset, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
-#define FOR_EACH_IN_BITSET_INTERSECTION_HELPER(v, bitset1, bitset2, i, sw, x) \
-           for (int i=0;i<m;i++) {setword sw=bitset1[i] & bitset2[i]; while (sw) {int x; TAKEBIT(x, sw); int v=i*WORDSIZE+x;
-#define FOR_EACH_IN_BITSET_INTERSECTION(v, bitset1, bitset2) \
-           FOR_EACH_IN_BITSET_INTERSECTION_HELPER(v, bitset1, bitset2, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
 void set_first_k_bits(setword *bitset, int k)
@@ -40,8 +29,8 @@ void set_first_k_bits(setword *bitset, int k)
         ++wordnum;
         k -= 64;
     }
-    if (k) {
-        bitset[wordnum] = allmask[k];
+    for (int i=0; i<k; i++) {
+        ADDELEMENT(bitset + wordnum, i);
     }
 }
 
@@ -65,6 +54,96 @@ bool intersection_is_empty(setword *vv, setword *ww)
         if (vv[i] & ww[i])
             return false;
     return true;
+}
+
+bool bitsets_are_equal(setword *vv, setword *ww)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i] != ww[i])
+            return false;
+    return true;
+}
+
+bool bitset_is_superset(setword *vv, setword *ww)
+{
+    for (int i=0; i<m; i++)
+        if (ww[i] & ~vv[i])
+            return false;
+    return true;
+}
+
+bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww)
+{
+    for (int i=0; i<m; i++)
+        if (ww[i] & ~(vv[i] | uu[i]))
+            return false;
+    return true;
+}
+
+void bitset_union(setword *dest, setword const *src1, setword const *src2)
+{
+    for (int i=0; i<m; i++)
+        dest[i] = src1[i] | src2[i];
+}
+
+void bitset_addall(setword *vv, setword const *ww)
+{
+    for (int i=0; i<m; i++)
+        vv[i] |= ww[i];
+}
+
+void bitset_removeall(setword *vv, setword const *ww)
+{
+    for (int i=0; i<m; i++)
+        vv[i] &= ~ww[i];
+}
+
+int bitset_compare(setword const *vv, setword const *ww)
+{
+    for (int i=0; i<m; i++) {
+        if (vv[i] != ww[i]) {
+            return vv[i] < ww[i] ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+void clear_bitset(setword *vv)
+{
+    for (int i=0; i<m; i++)
+        vv[i] = 0;
+}
+
+bool isempty(setword *vv)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i])
+            return false;
+    return true;
+}
+
+int popcount(setword const *vv)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i]);
+    return count;
+}
+
+int popcount_of_union(setword const *vv, setword const *ww)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i] | ww[i]);
+    return count;
+}
+
+int firstelement(setword const *vv)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i])
+            return FIRSTBITNZ(vv[i]) + i * WORDSIZE;
+    return -1;
 }
 
 /* We have a free-list of bitsets */
@@ -140,32 +219,6 @@ void deallocate_Bitsets()
         free(bitset_free_list_head);
         bitset_free_list_head = next_to_free;
     }
-}
-
-/*************************************/
-
-bool bitsets_are_equal(setword *vv, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i] != ww[i])
-            return false;
-    return true;
-}
-
-bool bitset_is_superset(setword *vv, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (ww[i] & ~vv[i])
-            return false;
-    return true;
-}
-
-bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (ww[i] & ~(vv[i] | uu[i]))
-            return false;
-    return true;
 }
 
 /** Hash map *************************/
@@ -489,7 +542,6 @@ struct TrieNode * trie_add_successor(struct Trie *trie, struct TrieNode *node, i
     trie_node_grow_if_necessary(node);
     node->successor_node_num[node->successor_len] = trie->nodes_len;
     ++node->successor_len;
-//    printf("! %d %d\n", node->successor_len, node==&trie->root);
 
     trie_grow_if_necessary(trie);
     struct TrieNode *succ = &trie->nodes[trie->nodes_len];
@@ -506,7 +558,6 @@ struct TrieNode * trie_add_successor(struct Trie *trie, struct TrieNode *node, i
 void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node, setword *set,
         setword *aux_set, int num_additions_permitted, int *arr_out, int *arr_out_len)
 {
-//    ++tmp_counter;
     if (node->val != -1) {
         arr_out[(*arr_out_len)++] = node->val;
     }
@@ -567,18 +618,10 @@ void trie_add_an_aux_bitset(struct Trie *trie, int *key, setword *aux_bitset)
     struct TrieNode *node = &trie->root;
     bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset);
     while (*key != -1) {
-//        printf("dbg key %d\n", *key);
         int succ_node_num = trie_get_successor_node_num(trie, node, *key);
-//        printf("dbg succ node num %d\n", succ_node_num);
-        if (succ_node_num != -1) {
-            node = &trie->nodes[succ_node_num];
-        } else {
-            printf("????\n");
-            exit(1);
-        }
+        node = &trie->nodes[succ_node_num];
         bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset);
         ++key;
-//        printf("node count %d\n", trie->nodes_len);
     }
 }
 
@@ -593,72 +636,6 @@ struct Dom
 };
 
 /*************************************/
-
-void bitset_union(setword *dest, setword const *src1, setword const *src2)
-{
-    for (int i=0; i<m; i++)
-        dest[i] = src1[i] | src2[i];
-}
-
-void bitset_addall(setword *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++)
-        vv[i] |= ww[i];
-}
-
-void bitset_removeall(setword *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++)
-        vv[i] &= ~ww[i];
-}
-
-int bitset_compare(setword const *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++) {
-        if (vv[i] != ww[i]) {
-            return vv[i] < ww[i] ? -1 : 1;
-        }
-    }
-    return 0;
-}
-
-void clear_bitset(setword *vv)
-{
-    for (int i=0; i<m; i++)
-        vv[i] = 0;
-}
-
-bool isempty(setword *vv)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i])
-            return false;
-    return true;
-}
-
-int popcount(setword const *vv)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i]);
-    return count;
-}
-
-int popcount_of_union(setword const *vv, setword const *ww)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i] | ww[i]);
-    return count;
-}
-
-int firstelement(setword const *vv)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i])
-            return FIRSTBITNZ(vv[i]) + i * WORDSIZE;
-    return -1;
-}
 
 // Returns a pointer to the first bitset in a linked list
 struct Bitset *make_connected_components(setword *vv, graph *g)
@@ -760,8 +737,6 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         graph *g, int n, struct Dom *dom,
         setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees, int root_depth, struct hash_set *set_root, struct hash_set *new_leafysets_hash_set)
 {
-    ++tmp_counter;
-
     if (!filtered_leafysets_len) {
         return;
     }
@@ -1068,12 +1043,6 @@ bool solve(graph *g, int n, struct Dom *dom, int target, int *parent)
 
 int main(int argc, char *argv[])
 {
-    setword sw = 0;
-    for (int i=0; i<64; i++) {
-        allmask[i] = sw;
-        sw |= BIT(i);
-    }
-
     char s[BUFFERSIZE], s1[32], s2[32];
     int n, edge_count;
     int v, w;
