@@ -419,11 +419,6 @@ void hash_destroy(struct hash_set *s)
 
 // This data structure is largely based on https://stackoverflow.com/a/6514445/3347737
 
-// SMALL_ARR_LEN must be a power of 2
-#define SMALL_ARR_LEN 2
-
-#define SMALL_BITSET_LEN 2
-
 struct TrieNode
 {
     int *successor_node_num;
@@ -435,16 +430,9 @@ struct TrieNode
 
     setword *subtree_intersection_of_aux_bitsets;
 
-    // avoid some mallocations
-    int small_arr[SMALL_ARR_LEN];
-    setword small_bitset[SMALL_BITSET_LEN];
-    setword small_aux_bitset[SMALL_BITSET_LEN];
-
     int key;
     int successor_len;
     int val;
-    int num_vals_in_subtrie;
-    int val_in_subtrie;    // only used if num_vals_in_subtrie is 1
 };
 
 struct Trie
@@ -455,41 +443,38 @@ struct Trie
     int graph_n;
 };
 
+void trie_node_init(struct TrieNode *node, int key)
+{
+    node->key = key;
+    node->val = -1;
+    node->successor_node_num = NULL;
+    node->successor_len = 0;
+}
+
 void trie_init(struct Trie *trie, int n)
 {
     trie->graph_n = n;
     trie->nodes_len = 0;
     trie->nodes = NULL;
 
-    trie->root.key = -1;
-    trie->root.val = -1;
-    trie->root.successor_len = 0;
-    trie->root.subtree_intersection = m <= SMALL_BITSET_LEN ? trie->root.small_bitset : get_bitset();
-    trie->root.subtree_intersection_of_aux_bitsets = m <= SMALL_BITSET_LEN ? trie->root.small_aux_bitset : get_bitset();
+    trie_node_init(&trie->root, -1);
+    trie->root.subtree_intersection = get_bitset();
+    trie->root.subtree_intersection_of_aux_bitsets = get_bitset();
     set_first_k_bits(trie->root.subtree_intersection, trie->graph_n);
     set_first_k_bits(trie->root.subtree_intersection_of_aux_bitsets, trie->graph_n);
-    trie->root.num_vals_in_subtrie = 0;
 }
 
 void trie_destroy(struct Trie *trie)
 {
     for (int i=0; i<trie->nodes_len; i++) {
         struct TrieNode *node = &trie->nodes[i];
-        if (node->successor_len > SMALL_ARR_LEN) {
-            free(node->successor_node_num);
-        }
-        if (m > SMALL_BITSET_LEN) {
-            free_bitset(node->subtree_intersection);
-            free_bitset(node->subtree_intersection_of_aux_bitsets);
-        }
+        free(node->successor_node_num);
+        free_bitset(node->subtree_intersection);
+        free_bitset(node->subtree_intersection_of_aux_bitsets);
     }
-    if (trie->root.successor_len > SMALL_ARR_LEN) {
-        free(trie->root.successor_node_num);
-    }
-    if (m > SMALL_BITSET_LEN) {
-        free_bitset(trie->root.subtree_intersection);
-        free_bitset(trie->root.subtree_intersection_of_aux_bitsets);
-    }
+    free(trie->root.successor_node_num);
+    free_bitset(trie->root.subtree_intersection);
+    free_bitset(trie->root.subtree_intersection_of_aux_bitsets);
     free(trie->nodes);
 }
 
@@ -499,27 +484,13 @@ void trie_grow_if_necessary(struct Trie *trie)
         trie->nodes = malloc(1 * sizeof *trie->nodes);
     } else if (__builtin_popcount(trie->nodes_len) == 1) {
         trie->nodes = realloc(trie->nodes, trie->nodes_len * 2 * sizeof *trie->nodes);
-        for (int i=0; i<trie->nodes_len; i++) {
-            if (trie->nodes[i].successor_len <= SMALL_ARR_LEN) {
-                trie->nodes[i].successor_node_num = trie->nodes[i].small_arr;
-            }
-            if (m <= SMALL_BITSET_LEN) {
-                trie->nodes[i].subtree_intersection = trie->nodes[i].small_bitset;
-                trie->nodes[i].subtree_intersection_of_aux_bitsets = trie->nodes[i].small_aux_bitset;
-            }
-        }
     }
 }
 
 void trie_node_grow_if_necessary(struct TrieNode *node)
 {
-    if (node->successor_len < SMALL_ARR_LEN) {
-        node->successor_node_num = node->small_arr;
-    } else if (node->successor_len == SMALL_ARR_LEN) {
-        node->successor_node_num = malloc(SMALL_ARR_LEN * 2 * sizeof *node->successor_node_num);
-        for (int i=0; i<SMALL_ARR_LEN; i++) {
-            node->successor_node_num[i] = node->small_arr[i];
-        }
+    if (node->successor_len == 0) {
+        node->successor_node_num = malloc(sizeof *node->successor_node_num);
     } else if (__builtin_popcount(node->successor_len) == 1) {
         node->successor_node_num = realloc(node->successor_node_num, node->successor_len * 2 * sizeof *node->successor_node_num);
     }
@@ -540,17 +511,12 @@ int trie_get_successor_node_num(struct Trie *trie, struct TrieNode *node, int ke
 struct TrieNode * trie_add_successor(struct Trie *trie, struct TrieNode *node, int key)
 {
     trie_node_grow_if_necessary(node);
-    node->successor_node_num[node->successor_len] = trie->nodes_len;
-    ++node->successor_len;
+    node->successor_node_num[node->successor_len++] = trie->nodes_len;
 
     trie_grow_if_necessary(trie);
-    struct TrieNode *succ = &trie->nodes[trie->nodes_len];
-    ++trie->nodes_len;
+    struct TrieNode *succ = &trie->nodes[trie->nodes_len++];
 
-    succ->key = key; 
-    succ->val = -1;
-    succ->successor_len = 0;
-    succ->num_vals_in_subtrie = 0;
+    trie_node_init(succ, key);
 
     return succ;
 }
@@ -566,14 +532,8 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
         struct TrieNode *succ = &trie->nodes[succ_node_num];
         if (popcount_of_set_difference(succ->subtree_intersection, set) <= num_additions_permitted &&
                 intersection_is_empty(aux_set, succ->subtree_intersection_of_aux_bitsets)) {
-            if (succ->num_vals_in_subtrie == 1) {
-                // this saves the work of traversing all the way down to a leaf node of the trie
-                arr_out[(*arr_out_len)++] = succ->val_in_subtrie;
-                continue;
-            } else {
-                trie_get_all_almost_subsets_helper(trie, succ, set, aux_set, num_additions_permitted,
-                        arr_out, arr_out_len);
-            }
+            trie_get_all_almost_subsets_helper(trie, succ, set, aux_set, num_additions_permitted,
+                    arr_out, arr_out_len);
         }
     }
 }
@@ -589,8 +549,6 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
 {
     struct TrieNode *node = &trie->root;
     bitset_intersect_with(node->subtree_intersection, key_bitset);
-    ++node->num_vals_in_subtrie;
-    node->val_in_subtrie = val;
     while (*key != -1) {
 //        printf("dbg key %d\n", *key);
         int succ_node_num = trie_get_successor_node_num(trie, node, *key);
@@ -599,13 +557,11 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
             node = &trie->nodes[succ_node_num];
         } else {
             node = trie_add_successor(trie, node, *key);
-            node->subtree_intersection = m <= SMALL_BITSET_LEN ? node->small_bitset : get_bitset();
-            node->subtree_intersection_of_aux_bitsets = m <= SMALL_BITSET_LEN ? node->small_aux_bitset : get_bitset();
+            node->subtree_intersection = get_bitset();
+            node->subtree_intersection_of_aux_bitsets = get_bitset();
             set_first_k_bits(node->subtree_intersection, trie->graph_n);
             set_first_k_bits(node->subtree_intersection_of_aux_bitsets, trie->graph_n);
         }
-        ++node->num_vals_in_subtrie;
-        node->val_in_subtrie = val;
         bitset_intersect_with(node->subtree_intersection, key_bitset);
         ++key;
 //        printf("node count %d\n", trie->nodes_len);
