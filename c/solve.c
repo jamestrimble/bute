@@ -568,6 +568,15 @@ void trie_add_an_aux_bitset(struct Trie *trie, int *key, setword *aux_bitset)
     }
 }
 
+
+/*************************************/
+
+struct Graph
+{
+    graph *g;
+    int n;
+};
+
 /*************************************/
 
 struct Dom
@@ -1018,7 +1027,7 @@ bool solve(graph *g, int n, struct Dom *dom, int target, int *parent)
     return retval;
 }
 
-int main(int argc, char *argv[])
+struct Graph read_graph()
 {
     char s[BUFFERSIZE], s1[32], s2[32];
     int n, edge_count;
@@ -1051,30 +1060,40 @@ int main(int argc, char *argv[])
             ++num_edges_read;
         }
     }
+    return (struct Graph) {g, n};
+}
 
+int optimise(struct Graph G, int *parent)
+{
     struct Dom dom;
-    Dom_init(&dom, n, g);
+    Dom_init(&dom, G.n, G.g);
 
-    int *parent = malloc(n * sizeof *parent);
-    for (int i=0; i<n; i++) {
-        parent[i] = -1;
-    }
-
-    for (int target=0; target<=n; target++) {
+    int target = 0;
+    for ( ; target<=G.n; target++) {
 //        printf("target %d\n", target);
-        bool result = solve(g, n, &dom, target, parent);
+        bool result = solve(G.g, G.n, &dom, target, parent);
         if (result) {
-            printf("%d\n", target);
-            for (int i=0; i<n; i++) {
-                printf("%d\n", parent[i] + 1);
-            }
             break;
         }
+    }
+    Dom_destroy(&dom);
+    return target;
+}
+
+int main(int argc, char *argv[])
+{
+    struct Graph G = read_graph();
+
+    int *parent = calloc(G.n, sizeof *parent);
+
+    int treedepth = optimise(G, parent);
+    printf("%d\n", treedepth);
+    for (int i=0; i<G.n; i++) {
+        printf("%d\n", parent[i] + 1);
     }
 
     free(parent);
 
-    Dom_destroy(&dom);
-    free(g);
+    free(G.g);
     deallocate_Bitsets();
 }
