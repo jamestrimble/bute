@@ -632,7 +632,6 @@ struct Dom
     setword **vv_dominated_by;
     setword **vv_that_dominate;
     setword **adj_vv_dominated_by;
-    setword **adj_vv_that_dominate;
 };
 
 /*************************************/
@@ -1077,12 +1076,10 @@ int main(int argc, char *argv[])
 
     struct Dom dom;
     dom.adj_vv_dominated_by = malloc(n * sizeof *dom.adj_vv_dominated_by);
-    dom.adj_vv_that_dominate = malloc(n * sizeof *dom.adj_vv_that_dominate);
     dom.vv_dominated_by = malloc(n * sizeof *dom.vv_dominated_by);
     dom.vv_that_dominate = malloc(n * sizeof *dom.vv_that_dominate);
     for (int v=0; v<n; v++) {
         dom.adj_vv_dominated_by[v] = get_empty_bitset();
-        dom.adj_vv_that_dominate[v] = get_empty_bitset();
         dom.vv_dominated_by[v] = get_empty_bitset();
         dom.vv_that_dominate[v] = get_empty_bitset();
     }
@@ -1101,7 +1098,6 @@ int main(int argc, char *argv[])
                         ADDELEMENT(dom.vv_that_dominate[v], w);
                         if (ISELEMENT(GRAPHROW(g, w, m), v)) {
                             ADDELEMENT(dom.adj_vv_dominated_by[w], v);
-                            ADDELEMENT(dom.adj_vv_that_dominate[v], w);
                         }
                     }
                 }
@@ -1132,12 +1128,10 @@ int main(int argc, char *argv[])
 
     for (int i=0; i<n; i++) {
         free_bitset(dom.adj_vv_dominated_by[i]);
-        free_bitset(dom.adj_vv_that_dominate[i]);
         free_bitset(dom.vv_dominated_by[i]);
         free_bitset(dom.vv_that_dominate[i]);
     }
     free(dom.adj_vv_dominated_by);
-    free(dom.adj_vv_that_dominate);
     free(dom.vv_dominated_by);
     free(dom.vv_that_dominate);
     free(g);
