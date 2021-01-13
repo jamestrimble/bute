@@ -639,46 +639,40 @@ void Dom_destroy(struct Dom *dom)
 /*************************************/
 
 // Returns a pointer to the first bitset in a linked list
-struct Bitset *make_connected_components(setword *vv, graph *g)
+struct Bitset *make_connected_components(setword *vv, struct Graph G)
 {
     struct Bitset *retval = NULL;
     setword *visited = get_empty_bitset();
     setword *vv_in_prev_components = get_empty_bitset();
-    setword *frontier = get_empty_bitset();
-    for (int j=0; j<m; j++) {
-        int x;
-        while (-1 != (x = FIRSTBIT(vv[j] & ~visited[j]))) {
-            int v = x + j * WORDSIZE;
-            clear_bitset(frontier);
-            ADDELEMENT(frontier, v);
-            bool frontier_empty = false;
-            while (!frontier_empty) {
-                int u = firstelement(frontier);
-                DELELEMENT(frontier, u);
-                ADDELEMENT(visited, u);
-                graph *graphrow = GRAPHROW(g, u, m);
-                frontier_empty = true;
-                for (int k=0; k<m; k++) {
-                    frontier[k] |= graphrow[k] & ~visited[k] & vv[k];
-                    frontier_empty &= frontier[k] == 0;
+    int *queue = malloc(G.n * sizeof *queue);
+    FOR_EACH_IN_BITSET(v, vv)
+        if (ISELEMENT(visited, v))
+            continue;
+        int queue_len = 0;
+        ADDELEMENT(visited, v);
+        queue[queue_len++] = v;
+        while (queue_len) {
+            int u = queue[--queue_len];
+            FOR_EACH_IN_BITSET(w, GRAPHROW(G.g, u, m))
+                if (ISELEMENT(vv, w) && !ISELEMENT(visited, w)) {
+                    ADDELEMENT(visited, w);
+                    queue[queue_len++] = w;
                 }
-            }
-
-            struct Bitset *bitset = get_Bitset();
-            bitset->next = retval;
-            retval = bitset;
-            setword *component = bitset->bitset;
-            for (int k=0; k<m; k++)
-                component[k] = visited[k] & ~vv_in_prev_components[k];
-
-            for (int k=0; k<m; k++)
-                vv_in_prev_components[k] |= visited[k];
+            END_FOR_EACH_IN_BITSET
         }
-    }
+        struct Bitset *bitset = get_Bitset();
+        bitset->next = retval;
+        retval = bitset;
+        setword *component = bitset->bitset;
+        for (int k=0; k<m; k++)
+            component[k] = visited[k] & ~vv_in_prev_components[k];
 
-    free_bitset(frontier);
+        bitset_addall(vv_in_prev_components, visited);
+    END_FOR_EACH_IN_BITSET
+
     free_bitset(vv_in_prev_components);
     free_bitset(visited);
+    free(queue);
     return retval;
 }
 
@@ -943,7 +937,7 @@ int cmp_popcount_desc(const void *a, const void *b) {
     return bitset_compare(sa, sb);
 }
 
-void add_parents(int *parent, graph *g, struct hash_set *set_root, setword *s, int parent_vertex)
+void add_parents(int *parent, struct Graph G, struct hash_set *set_root, setword *s, int parent_vertex)
 {
     int v;
     if (!hash_get_val(set_root, s, &v)) {
@@ -953,9 +947,9 @@ void add_parents(int *parent, graph *g, struct hash_set *set_root, setword *s, i
     parent[v] = parent_vertex;
     setword *vv_in_child_subtrees = get_copy_of_bitset(s);
     DELELEMENT(vv_in_child_subtrees, v);
-    struct Bitset * components = make_connected_components(vv_in_child_subtrees, g);
+    struct Bitset * components = make_connected_components(vv_in_child_subtrees, G);
     for (struct Bitset *component=components; component!=NULL; component=component->next) {
-        add_parents(parent, g, set_root, component->bitset, v);
+        add_parents(parent, G, set_root, component->bitset, v);
     }
     free_Bitsets(components);
     free_bitset(vv_in_child_subtrees);
@@ -1003,7 +997,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
-                    add_parents(parent, G.g, &set_root, leafysets[i], parent_vertex);
+                    add_parents(parent, G, &set_root, leafysets[i], parent_vertex);
                 }
                 leafysets[k++] = leafysets[i];
             } else {
