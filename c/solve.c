@@ -913,12 +913,6 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
         }
         leafysets_len = leafysets_len + new_leafysets_len;
 
-        struct hash_set leafysets_as_set;
-        hash_init(&leafysets_as_set, G.m);
-        for (int i=0; i<leafysets_len; i++) {
-            hash_add(&leafysets_as_set, leafysets[i], 1);
-        }
-
         int k = 0;
         for (int i=0; i<leafysets_len; i++) {
             setword *adj_vv = get_bitset();
@@ -941,7 +935,6 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
         }
         leafysets_len = k;
         qsort(leafysets, leafysets_len, sizeof *leafysets, cmp_popcount_desc);
-        hash_destroy(&leafysets_as_set);
         free(new_leafysets);
         if (retval) {
             break;
