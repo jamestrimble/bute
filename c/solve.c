@@ -478,24 +478,6 @@ void trie_destroy(struct Trie *trie)
     free(trie->nodes);
 }
 
-void trie_grow_if_necessary(struct Trie *trie)
-{
-    if (trie->nodes_len == 0) {
-        trie->nodes = malloc(1 * sizeof *trie->nodes);
-    } else if (__builtin_popcount(trie->nodes_len) == 1) {
-        trie->nodes = realloc(trie->nodes, trie->nodes_len * 2 * sizeof *trie->nodes);
-    }
-}
-
-void trie_node_grow_if_necessary(struct TrieNode *node)
-{
-    if (node->successor_len == 0) {
-        node->successor_node_num = malloc(sizeof *node->successor_node_num);
-    } else if (__builtin_popcount(node->successor_len) == 1) {
-        node->successor_node_num = realloc(node->successor_node_num, node->successor_len * 2 * sizeof *node->successor_node_num);
-    }
-}
-
 int trie_get_successor_node_num(struct Trie *trie, struct TrieNode *node, int key)
 {
     for (int i=0; i<node->successor_len; i++) {
@@ -510,10 +492,18 @@ int trie_get_successor_node_num(struct Trie *trie, struct TrieNode *node, int ke
 
 struct TrieNode * trie_add_successor(struct Trie *trie, struct TrieNode *node, int key)
 {
-    trie_node_grow_if_necessary(node);
+    if (node->successor_len == 0) {
+        node->successor_node_num = malloc(sizeof *node->successor_node_num);
+    } else if (__builtin_popcount(node->successor_len) == 1) {
+        node->successor_node_num = realloc(node->successor_node_num, node->successor_len * 2 * sizeof *node->successor_node_num);
+    }
     node->successor_node_num[node->successor_len++] = trie->nodes_len;
 
-    trie_grow_if_necessary(trie);
+    if (trie->nodes_len == 0) {
+        trie->nodes = malloc(1 * sizeof *trie->nodes);
+    } else if (__builtin_popcount(trie->nodes_len) == 1) {
+        trie->nodes = realloc(trie->nodes, trie->nodes_len * 2 * sizeof *trie->nodes);
+    }
     struct TrieNode *succ = &trie->nodes[trie->nodes_len++];
 
     trie_node_init(succ, key);
@@ -550,9 +540,7 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
     struct TrieNode *node = &trie->root;
     bitset_intersect_with(node->subtree_intersection, key_bitset);
     while (*key != -1) {
-//        printf("dbg key %d\n", *key);
         int succ_node_num = trie_get_successor_node_num(trie, node, *key);
-//        printf("dbg succ node num %d\n", succ_node_num);
         if (succ_node_num != -1) {
             node = &trie->nodes[succ_node_num];
         } else {
@@ -564,7 +552,6 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
         }
         bitset_intersect_with(node->subtree_intersection, key_bitset);
         ++key;
-//        printf("node count %d\n", trie->nodes_len);
     }
     node->val = val;
 }
@@ -636,12 +623,6 @@ struct Bitset *make_connected_components(setword *vv, graph *g)
     return retval;
 }
 
-struct VtxInfo
-{
-    int v;
-    int degree;
-};
-
 void find_adjacent_vv(setword *s, graph *g, setword *adj_vv)
 {
     clear_bitset(adj_vv);
@@ -659,15 +640,11 @@ struct SetAndNeighbourhood
 {
     setword *set;
     setword *nd;
-    int sorted_position;
 };
 
 int cmp_nd_popcount_desc(const void *a, const void *b) {
     const struct SetAndNeighbourhood sa = *(const struct SetAndNeighbourhood *) a;
     const struct SetAndNeighbourhood sb = *(const struct SetAndNeighbourhood *) b;
-    if (sa.sorted_position != -1) {
-        return sa.sorted_position - sb.sorted_position;
-    }
     int pca = popcount(sa.nd);
     int pcb = popcount(sb.nd);
     if (pca != pcb) {
@@ -854,13 +831,9 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, graph *g, int n
         leafysets_and_nds[i].set = leafysets[i];
         leafysets_and_nds[i].nd = get_bitset();
         find_adjacent_vv(leafysets[i], g, leafysets_and_nds[i].nd);
-        leafysets_and_nds[i].sorted_position = -1;
     }
 
     qsort(leafysets_and_nds, leafysets_len, sizeof *leafysets_and_nds, cmp_nd_popcount_desc);
-    for (int i=0; i<leafysets_len; i++) {
-        leafysets_and_nds[i].sorted_position = i;
-    }
 
     for (int v=0; v<n; v++) {
         setword *single_vtx_leafyset = get_empty_bitset();
