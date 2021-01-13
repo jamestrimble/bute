@@ -924,7 +924,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
             if (popcount(adj_vv) < root_depth) {
                 if (!retval && popcount(leafysets[i]) + popcount(adj_vv) == G.n) {
                     retval = true;
-                    int parent_vertex = -1;;
+                    int parent_vertex = -1;
                     FOR_EACH_IN_BITSET(w, adj_vv)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
