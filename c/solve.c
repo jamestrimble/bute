@@ -20,7 +20,7 @@ int m = 0;
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
-int bitset_compare(setword const *vv, setword const *ww)
+int bitset_compare_WITHOUT_m(setword const *vv, setword const *ww)
 {
     for (int i=0; i<m; i++) {
         if (vv[i] != ww[i]) {
@@ -30,7 +30,7 @@ int bitset_compare(setword const *vv, setword const *ww)
     return 0;
 }
 
-int popcount(setword const *vv)
+int popcount_WITHOUT_m(setword const *vv)
 {
     int count = 0;
     for (int i=0; i<m; i++)
@@ -532,25 +532,33 @@ struct SetAndNeighbourhood
 {
     setword *set;
     setword *nd;
+    int m;
+    int sorted_position;
 };
 
 int cmp_nd_popcount_desc(const void *a, const void *b) {
     const struct SetAndNeighbourhood sa = *(const struct SetAndNeighbourhood *) a;
     const struct SetAndNeighbourhood sb = *(const struct SetAndNeighbourhood *) b;
-    int pca = popcount(sa.nd);
-    int pcb = popcount(sb.nd);
+    int pca = popcount(sa.nd, sa.m);
+    int pcb = popcount(sb.nd, sa.m);
     if (pca != pcb) {
         return pca > pcb ? -1 : 1;
     }
-    int comp = bitset_compare(sa.nd, sb.nd);
+    int comp = bitset_compare(sa.nd, sb.nd, sa.m);
     if (comp != 0)
         return comp;
-    pca = popcount(sa.set);
-    pcb = popcount(sb.set);
+    pca = popcount(sa.set, sa.m);
+    pcb = popcount(sb.set, sa.m);
     if (pca != pcb) {
         return pca > pcb ? -1 : 1;
     }
-    return bitset_compare(sa.set, sb.set);
+    return bitset_compare(sa.set, sb.set, sa.m);
+}
+
+int cmp_sorted_position(const void *a, const void *b) {
+    int a_position = ((const struct SetAndNeighbourhood *) a)->sorted_position;
+    int b_position = ((const struct SetAndNeighbourhood *) b)->sorted_position;
+    return a_position - b_position;
 }
 
 // if filtered_leafysets_len is small, use a simple filtering algorithm to
@@ -590,7 +598,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
             bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m), G.m);
             bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
-            if (popcount(adj_vv) <= root_depth) {
+            if (popcount(adj_vv, G.m) <= root_depth) {
                 setword *leafyset = get_copy_of_bitset(new_union_of_subtrees);
                 ADDELEMENT(leafyset, w);
                 if (intersection_is_empty(dom->vv_dominated_by[w], adj_vv, G.m) &&
@@ -610,9 +618,9 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE) {
             int almost_subset_end_positions_len;
-            trie_get_all_almost_subsets(&trie, filtered_leafysets[i].nd, new_union_of_subtrees_and_nd, root_depth - popcount(filtered_leafysets[i].nd),
+            trie_get_all_almost_subsets(&trie, filtered_leafysets[i].nd, new_union_of_subtrees_and_nd, root_depth - popcount(filtered_leafysets[i].nd, G.m),
                     almost_subset_end_positions, &almost_subset_end_positions_len);
-            if (root_depth == popcount(filtered_leafysets[i].nd)) {
+            if (root_depth == popcount(filtered_leafysets[i].nd, G.m)) {
                 int it = i + 1;
                 while (it < filtered_leafysets_len && bitset_equals(filtered_leafysets[i].nd, filtered_leafysets[it].nd, G.m)) {
                     it++;
@@ -653,7 +661,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             }
         }
 
-        qsort(further_filtered_leafysets, further_filtered_leafysets_len, sizeof *further_filtered_leafysets, cmp_nd_popcount_desc);
+        qsort(further_filtered_leafysets, further_filtered_leafysets_len, sizeof *further_filtered_leafysets, cmp_sorted_position);
 
         FOR_EACH_IN_BITSET(v, new_possible_leafyset_roots, G.m)
             setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
@@ -661,7 +669,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
             DELELEMENT(adj_vv, v);
             bitset_removeall(adj_vv, new_big_union, G.m);
-            if (popcount(adj_vv) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, dom->adj_vv_dominated_by[v], G.m)) {
+            if (popcount(adj_vv, G.m) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, dom->adj_vv_dominated_by[v], G.m)) {
                 DELELEMENT(new_possible_leafyset_roots, v);
             }
             free_bitset(adj_vv);
@@ -684,7 +692,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             leafyset_is_first_of_equal_nd_run[i] = true;
         }
         if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE) {
-            if (root_depth > popcount(filtered_leafysets[i].nd)) {
+            if (root_depth > popcount(filtered_leafysets[i].nd, G.m)) {
                 if (i == filtered_leafysets_len-1 || !bitset_equals(filtered_leafysets[i].nd, filtered_leafysets[i+1].nd, G.m)) {
                     int pos = 0;
                     FOR_EACH_IN_BITSET(w, filtered_leafysets[i].nd, G.m)
@@ -718,17 +726,20 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     struct SetAndNeighbourhood *leafysets_and_nds = malloc(leafysets_len * sizeof *leafysets_and_nds);
     for (int i=0; i<leafysets_len; i++) {
         hash_add(&leafysets_as_set, leafysets[i], 1);
-        leafysets_and_nds[i].set = leafysets[i];
-        leafysets_and_nds[i].nd = get_bitset();
-        find_adjacent_vv(leafysets[i], G, leafysets_and_nds[i].nd);
+        setword *nd = get_bitset();
+        find_adjacent_vv(leafysets[i], G, nd);
+        leafysets_and_nds[i] = (struct SetAndNeighbourhood) {leafysets[i], nd, G.m};
     }
 
     qsort(leafysets_and_nds, leafysets_len, sizeof *leafysets_and_nds, cmp_nd_popcount_desc);
+    for (int i=0; i<leafysets_len; i++) {
+        leafysets_and_nds[i].sorted_position = i;
+    }
 
     for (int v=0; v<G.n; v++) {
         setword *single_vtx_leafyset = get_empty_bitset();
         ADDELEMENT(single_vtx_leafyset, v);
-        if (popcount(GRAPHROW(G.g, v, G.m)) < root_depth && isempty(dom->adj_vv_dominated_by[v], G.m)
+        if (popcount(GRAPHROW(G.g, v, G.m), G.m) < root_depth && isempty(dom->adj_vv_dominated_by[v], G.m)
                 && !hash_iselement(set_root, single_vtx_leafyset)) {
             hash_add(&new_leafysets_hash_set, single_vtx_leafyset, 1);
             hash_add(set_root, single_vtx_leafyset, v);
@@ -765,13 +776,13 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
 int cmp_popcount_desc(const void *a, const void *b) {
     const setword *sa = *(const setword **) a;
     const setword *sb = *(const setword **) b;
-    int pca = popcount(sa);
-    int pcb = popcount(sb);
+    int pca = popcount_WITHOUT_m(sa);
+    int pcb = popcount_WITHOUT_m(sb);
     if (pca < pcb)
         return 1;
     if (pca > pcb)
         return -1;
-    return bitset_compare(sa, sb);
+    return bitset_compare_WITHOUT_m(sa, sb);
 }
 
 void add_parents(int *parent, struct Graph G, struct hash_set *set_root, setword *s, int parent_vertex)
@@ -820,8 +831,8 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
         for (int i=0; i<leafysets_len; i++) {
             setword *adj_vv = get_bitset();
             find_adjacent_vv(leafysets[i], G, adj_vv);
-            if (popcount(adj_vv) < root_depth) {
-                if (!retval && popcount(leafysets[i]) + popcount(adj_vv) == G.n) {
+            if (popcount(adj_vv, G.m) < root_depth) {
+                if (!retval && popcount(leafysets[i], G.m) + popcount(adj_vv, G.m) == G.n) {
                     retval = true;
                     int parent_vertex = -1;
                     FOR_EACH_IN_BITSET(w, adj_vv, G.m)

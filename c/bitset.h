@@ -44,4 +44,8 @@ bool isempty(setword *vv, int m);
 
 int popcount_of_union(setword const *vv, setword const *ww, int m);
 
+int bitset_compare(setword const *vv, setword const *ww, int m);
+
+int popcount(setword const *vv, int m);
+
 #endif

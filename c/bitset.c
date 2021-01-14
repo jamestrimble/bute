@@ -95,3 +95,20 @@ int popcount_of_union(setword const *vv, setword const *ww, int m)
     return count;
 }
 
+int bitset_compare(setword const *vv, setword const *ww, int m)
+{
+    for (int i=0; i<m; i++) {
+        if (vv[i] != ww[i]) {
+            return vv[i] < ww[i] ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+int popcount(setword const *vv, int m)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i]);
+    return count;
+}
