@@ -1,8 +1,6 @@
 #ifndef BITSET_H
 #define BITSET_H
 
-#include "bute.h"
-
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -69,6 +67,8 @@ struct Bitset
     struct Bitset *next;
     setword bitset[];
 };
+
+struct Bute;
 
 struct Bitset *get_Bitset(struct Bute *bute);
 
