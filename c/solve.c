@@ -124,51 +124,42 @@ void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct has
 
         setword *new_union_of_subtrees_and_nd = get_copy_of_bitset(bute, new_union_of_subtrees);
         bitset_addall(new_union_of_subtrees_and_nd, nd_of_new_union_of_subtrees, G.m);
-        int filtered_STSs_len = 0;
 
+        struct SetAndNeighbourhood *candidates;
+        int candidates_len = 0;
         if (STSs_len >= MIN_LEN_FOR_TRIE) {
+            candidates = filtered_STSs;         // we'll filter in place afterwards
             int almost_subset_end_positions_len;
             trie_get_all_almost_subsets(&trie, STSs[i].nd, new_union_of_subtrees_and_nd, root_depth - popcount(STSs[i].nd, G.m),
                     almost_subset_end_positions, &almost_subset_end_positions_len);
             if (root_depth == popcount(STSs[i].nd, G.m)) {
                 int it = i + 1;
                 while (it < STSs_len && bitset_equals(STSs[i].nd, STSs[it].nd, G.m)) {
-                    it++;
-                }
-                if (it > i + 1) {
-                    almost_subset_end_positions[almost_subset_end_positions_len++] = it - 1;
+                    candidates[candidates_len++] = STSs[it++];
                 }
             }
             for (int j=0; j<almost_subset_end_positions_len; j++) {
                 int iter = almost_subset_end_positions[j];
-                struct SetAndNeighbourhood fl = STSs[iter];
-                setword *nd = fl.nd;
-                if (intersection_is_empty(fl.nd, new_possible_STS_roots, G.m) ||
-                        popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth) {
-                    continue;
-                }
-                for (;;) {
-                    struct SetAndNeighbourhood fl = STSs[iter];
-                    if (intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m)) {
-                        filtered_STSs[filtered_STSs_len++] = fl;
-                    }
+                setword *nd = STSs[iter].nd;
+                do {
+                    candidates[candidates_len++] = STSs[iter];
                     --iter;
-                    if (iter == i || !bitset_equals(nd, STSs[iter].nd, G.m)) {
-                        break;
-                    }
-                }
+                } while (iter > i && bitset_equals(nd, STSs[iter].nd, G.m));
             }
         } else {
-            for (int j=i+1; j<STSs_len; j++) {
-                struct SetAndNeighbourhood fl = STSs[j];
-                if (intersection_is_empty(fl.nd, new_possible_STS_roots, G.m))
-                    continue;
-                if (popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth)
-                    continue;
-                if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m))
-                    continue;
-                filtered_STSs[filtered_STSs_len++] = fl;
-            }
+            candidates = STSs + i+1;
+            candidates_len = STSs_len - (i+1);
+        }
+        int filtered_STSs_len = 0;
+        for (int j=0; j<candidates_len; j++) {
+            struct SetAndNeighbourhood fl = candidates[j];
+            if (intersection_is_empty(fl.nd, new_possible_STS_roots, G.m))
+                continue;
+            if (popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth)
+                continue;
+            if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m))
+                continue;
+            filtered_STSs[filtered_STSs_len++] = fl;
         }
 
         filter_roots(bute, G, new_possible_STS_roots, filtered_STSs, filtered_STSs_len,
