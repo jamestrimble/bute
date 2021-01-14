@@ -50,4 +50,5 @@ void Bute_destroy(struct Bute *bute)
     free(bute->adj_vv_dominated_by);
     free(bute->vv_dominated_by);
     free(bute->vv_that_dominate);
+    deallocate_Bitsets(bute);
 }

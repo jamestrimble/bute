@@ -339,6 +339,5 @@ int main(int argc, char *argv[])
 
     free(parent);
     free(G.g);
-    deallocate_Bitsets(&bute);
     Bute_destroy(&bute);
 }
