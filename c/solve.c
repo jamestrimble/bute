@@ -11,12 +11,6 @@
 
 #define BUFFERSIZE 1024
 
-/*************************************/
-
-struct Bute *bute;
-
-/*************************************/
-
 struct Dom
 {
     setword **vv_dominated_by;
@@ -25,7 +19,7 @@ struct Dom
     int n;
 };
 
-void Dom_init(struct Dom *dom, struct Graph G)
+void Dom_init(struct Dom *dom, struct Graph G, struct Bute *bute)
 {
     dom->n = G.n;
     dom->adj_vv_dominated_by = malloc(G.n * sizeof *dom->adj_vv_dominated_by);
@@ -61,7 +55,7 @@ void Dom_init(struct Dom *dom, struct Graph G)
     }
 }
 
-void Dom_destroy(struct Dom *dom)
+void Dom_destroy(struct Dom *dom, struct Bute *bute)
 {
     for (int i=0; i<dom->n; i++) {
         free_bitset(bute, dom->adj_vv_dominated_by[i]);
@@ -76,7 +70,7 @@ void Dom_destroy(struct Dom *dom)
 /*************************************/
 
 // Returns a pointer to the first bitset in a linked list
-struct Bitset *make_connected_components(setword *vv, struct Graph G)
+struct Bitset *make_connected_components(setword *vv, struct Graph G, struct Bute *bute)
 {
     struct Bitset *retval = NULL;
     setword *visited = get_empty_bitset(bute);
@@ -151,7 +145,7 @@ int cmp_sorted_position(const void *a, const void *b) {
 #define MIN_LEN_FOR_TRIE 50
 
 void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int filtered_leafysets_len, struct hash_map *leafysets_as_set,
-        struct Graph G, struct Dom *dom, setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
+        struct Bute *bute, struct Graph G, struct Dom *dom, setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
         int root_depth, struct hash_map *set_root, struct hash_map *new_leafysets_hash_map)
 {
     if (!filtered_leafysets_len) {
@@ -262,7 +256,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         if (!isempty(new_possible_leafyset_roots, G.m)) {
             make_leafysets_helper(further_filtered_leafysets, further_filtered_leafysets_len, leafysets_as_set,
-                    G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_map);
+                    bute, G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_map);
         }
 
         free_bitset(bute, new_union_of_subtrees_and_nd);
@@ -300,7 +294,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
     free(nd_arr);
 }
 
-setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
+setword **make_leafysets(setword **leafysets, int leafysets_len, struct Bute *bute, struct Graph G,
         struct Dom *dom,
         int root_depth, struct hash_map *set_root, int *new_leafysets_len)
 {
@@ -342,7 +336,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     }
 
     make_leafysets_helper(filtered_leafysets, filtered_leafysets_len, &leafysets_as_set,
-            G, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_map);
+            bute, G, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_map);
     free(filtered_leafysets);
     free_bitset(bute, empty_set);
     free_bitset(bute, full_set);
@@ -358,7 +352,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     return retval;
 }
 
-void add_parents(int *parent, struct Graph G, struct hash_map *set_root, setword *s, int parent_vertex)
+void add_parents(struct Bute *bute, int *parent, struct Graph G, struct hash_map *set_root, setword *s, int parent_vertex)
 {
     int v;
     if (!hash_get_val(set_root, s, &v)) {
@@ -368,15 +362,15 @@ void add_parents(int *parent, struct Graph G, struct hash_map *set_root, setword
     parent[v] = parent_vertex;
     setword *vv_in_child_subtrees = get_copy_of_bitset(bute, s);
     DELELEMENT(vv_in_child_subtrees, v);
-    struct Bitset * components = make_connected_components(vv_in_child_subtrees, G);
+    struct Bitset * components = make_connected_components(vv_in_child_subtrees, G, bute);
     for (struct Bitset *component=components; component!=NULL; component=component->next) {
-        add_parents(parent, G, set_root, component->bitset, v);
+        add_parents(bute, parent, G, set_root, component->bitset, v);
     }
     free_Bitsets(bute, components);
     free_bitset(bute, vv_in_child_subtrees);
 }
 
-bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
+bool solve(struct Bute *bute, struct Graph G, struct Dom *dom, int target, int *parent)
 {
     bool retval = false;
     struct hash_map set_root;
@@ -389,7 +383,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
 //        printf("root depth %d\n", root_depth);
 //        printf(" %d\n", leafysets_len);
         int new_leafysets_len = 0;
-        setword **new_leafysets = make_leafysets(leafysets, leafysets_len, G, dom, root_depth, &set_root, &new_leafysets_len);
+        setword **new_leafysets = make_leafysets(leafysets, leafysets_len, bute, G, dom, root_depth, &set_root, &new_leafysets_len);
         if (new_leafysets_len == 0) {
             free(new_leafysets);
             break;
@@ -412,7 +406,7 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
-                    add_parents(parent, G, &set_root, leafysets[i], parent_vertex);
+                    add_parents(bute, parent, G, &set_root, leafysets[i], parent_vertex);
                 }
                 leafysets[k++] = leafysets[i];
             } else {
@@ -472,31 +466,29 @@ struct Graph read_graph()
     return (struct Graph) {g, n, m};
 }
 
-int optimise(struct Graph G, int *parent)
+int optimise(struct Graph G, int *parent, struct Bute *bute)
 {
     struct Dom dom;
-    Dom_init(&dom, G);
+    Dom_init(&dom, G, bute);
 
     int target = 0;
     for ( ; target<=G.n; target++) {
 //        printf("target %d\n", target);
-        bool result = solve(G, &dom, target, parent);
+        bool result = solve(bute, G, &dom, target, parent);
         if (result) {
             break;
         }
     }
-    Dom_destroy(&dom);
+    Dom_destroy(&dom, bute);
     return target;
 }
 
 int main(int argc, char *argv[])
 {
-    bute = calloc(1, sizeof(*bute));
-
     struct Graph G = read_graph();
-    bute->m = G.m;
+    struct Bute bute = {G.m, NULL};
     int *parent = calloc(G.n, sizeof *parent);
-    int treedepth = optimise(G, parent);
+    int treedepth = optimise(G, parent, &bute);
 
     printf("%d\n", treedepth);
     for (int i=0; i<G.n; i++) {
@@ -505,5 +497,5 @@ int main(int argc, char *argv[])
 
     free(parent);
     free(G.g);
-    deallocate_Bitsets(bute);
+    deallocate_Bitsets(&bute);
 }
