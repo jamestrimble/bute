@@ -20,24 +20,6 @@ int m = 0;
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
-int bitset_compare_WITHOUT_m(setword const *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++) {
-        if (vv[i] != ww[i]) {
-            return vv[i] < ww[i] ? -1 : 1;
-        }
-    }
-    return 0;
-}
-
-int popcount_WITHOUT_m(setword const *vv)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i]);
-    return count;
-}
-
 /* We have a free-list of bitsets */
 
 struct Bitset
@@ -773,18 +755,6 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     return retval;
 }
 
-int cmp_popcount_desc(const void *a, const void *b) {
-    const setword *sa = *(const setword **) a;
-    const setword *sb = *(const setword **) b;
-    int pca = popcount_WITHOUT_m(sa);
-    int pcb = popcount_WITHOUT_m(sb);
-    if (pca < pcb)
-        return 1;
-    if (pca > pcb)
-        return -1;
-    return bitset_compare_WITHOUT_m(sa, sb);
-}
-
 void add_parents(int *parent, struct Graph G, struct hash_set *set_root, setword *s, int parent_vertex)
 {
     int v;
@@ -848,7 +818,6 @@ bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
             free_bitset(adj_vv);
         }
         leafysets_len = k;
-        qsort(leafysets, leafysets_len, sizeof *leafysets, cmp_popcount_desc);
         free(new_leafysets);
         if (retval) {
             break;
@@ -919,17 +888,15 @@ int optimise(struct Graph G, int *parent)
 int main(int argc, char *argv[])
 {
     struct Graph G = read_graph();
-
     int *parent = calloc(G.n, sizeof *parent);
-
     int treedepth = optimise(G, parent);
+
     printf("%d\n", treedepth);
     for (int i=0; i<G.n; i++) {
         printf("%d\n", parent[i] + 1);
     }
 
     free(parent);
-
     free(G.g);
     deallocate_Bitsets();
 }
