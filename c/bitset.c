@@ -100,7 +100,7 @@ int popcount_of_union(setword const *vv, setword const *ww, int m)
 
 int bitset_compare(setword const *vv, setword const *ww, int m)
 {
-    for (int i=0; i<m; i++) {
+    for (int i=m; i--; ) {
         if (vv[i] != ww[i]) {
             return vv[i] < ww[i] ? -1 : 1;
         }
