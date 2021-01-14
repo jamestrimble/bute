@@ -26,11 +26,10 @@ struct Trie
     int nodes_len;
     int graph_n;
     int m;
-    setword *(*alloc_bitset)();
-    void (*dealloc_bitset)(setword *);
+    struct Bute *bute;
 };
 
-void trie_init(struct Trie *trie, int n, int m, setword *(*alloc_bitset)(), void (*dealloc_bitset)(setword *));
+void trie_init(struct Trie *trie, int n, int m, struct Bute *bute);
 
 void trie_destroy(struct Trie *trie);
 

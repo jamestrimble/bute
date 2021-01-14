@@ -1,6 +1,8 @@
 #ifndef BITSET_H
 #define BITSET_H
 
+#include "bute.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -59,5 +61,29 @@ int popcount(setword const *vv, int m);
 #define FOR_EACH_IN_BITSET(v, bitset, m) \
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
+
+/* We have a free-list of bitsets */
+
+struct Bitset
+{
+    struct Bitset *next;
+    setword bitset[];
+};
+
+struct Bitset *get_Bitset(struct Bute *bute);
+
+setword *get_bitset(struct Bute *bute);
+
+setword *get_empty_bitset(struct Bute *bute);
+
+setword *get_copy_of_bitset(struct Bute *bute, setword const *vv);
+
+void free_Bitset(struct Bute *bute, struct Bitset *b);
+
+void free_bitset(struct Bute *bute, setword *bitset);
+
+void free_Bitsets(struct Bute *bute, struct Bitset *b);
+
+void deallocate_Bitsets(struct Bute *bute);
 
 #endif

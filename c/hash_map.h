@@ -2,6 +2,7 @@
 #define HASH_MAP_H
 
 #include "bitset.h"
+#include "bute.h"
 
 struct hash_chain_element
 {
@@ -16,9 +17,10 @@ struct hash_map
     int sz;
     struct hash_chain_element **chain_heads;
     int m;
+    struct Bute *bute;
 };
 
-void hash_init(struct hash_map *s, int m);
+void hash_init(struct hash_map *s, struct Bute *bute);
 
 void hash_destroy(struct hash_map *s);
 
@@ -26,7 +28,7 @@ bool hash_iselement(struct hash_map *s, setword *key);
 
 void hash_add(struct hash_map *s, setword * key, int val);
 
-setword ** hash_map_to_list(struct hash_map *s, setword *(*alloc_bitset)());
+setword ** hash_map_to_list(struct hash_map *s);
 
 bool hash_get_val(struct hash_map *s, setword *key, int *val);
 

@@ -3,12 +3,13 @@
 
 #include "hash_map.h"
 
-void hash_init(struct hash_map *s, int m)
+void hash_init(struct hash_map *s, struct Bute *bute)
 {
     s->M = 1;
     s->sz = 0;
     s->chain_heads = calloc(s->M, sizeof *s->chain_heads);
-    s->m = m;
+    s->m = bute->m;
+    s->bute = bute;
 }
 
 // Based on https://gist.github.com/badboy/6267743
@@ -94,14 +95,14 @@ bool hash_iselement(struct hash_map *s, setword *key)
     return hash_get_val(s, key, &junk);
 }
 
-setword ** hash_map_to_list(struct hash_map *s, setword *(*alloc_bitset)())
+setword ** hash_map_to_list(struct hash_map *s)
 {
     setword **retval = malloc(s->sz * sizeof *retval);
     int j = 0;
     for (int i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];
         while (p) {
-            retval[j] = alloc_bitset();
+            retval[j] = get_bitset(s->bute);
             for (int k=0; k<s->m; k++) {
                 retval[j][k] = p->key[k];
             }

@@ -12,18 +12,17 @@ void trie_node_init(struct TrieNode *node, int key)
     node->successor_len = 0;
 }
 
-void trie_init(struct Trie *trie, int n, int m, setword *(*alloc_bitset)(), void (*dealloc_bitset)(setword *))
+void trie_init(struct Trie *trie, int n, int m, struct Bute *bute)
 {
     trie->graph_n = n;
     trie->m = m;
     trie->nodes_len = 0;
     trie->nodes = NULL;
-    trie->alloc_bitset = alloc_bitset;
-    trie->dealloc_bitset = dealloc_bitset;
+    trie->bute = bute;
 
     trie_node_init(&trie->root, -1);
-    trie->root.subtree_intersection = alloc_bitset();
-    trie->root.subtree_intersection_of_aux_bitsets = alloc_bitset();
+    trie->root.subtree_intersection = get_bitset(bute);
+    trie->root.subtree_intersection_of_aux_bitsets = get_bitset(bute);
     set_first_k_bits(trie->root.subtree_intersection, trie->graph_n);
     set_first_k_bits(trie->root.subtree_intersection_of_aux_bitsets, trie->graph_n);
 }
@@ -33,12 +32,12 @@ void trie_destroy(struct Trie *trie)
     for (int i=0; i<trie->nodes_len; i++) {
         struct TrieNode *node = &trie->nodes[i];
         free(node->successor_node_num);
-        trie->dealloc_bitset(node->subtree_intersection);
-        trie->dealloc_bitset(node->subtree_intersection_of_aux_bitsets);
+        free_bitset(trie->bute, node->subtree_intersection);
+        free_bitset(trie->bute, node->subtree_intersection_of_aux_bitsets);
     }
     free(trie->root.successor_node_num);
-    trie->dealloc_bitset(trie->root.subtree_intersection);
-    trie->dealloc_bitset(trie->root.subtree_intersection_of_aux_bitsets);
+    free_bitset(trie->bute, trie->root.subtree_intersection);
+    free_bitset(trie->bute, trie->root.subtree_intersection_of_aux_bitsets);
     free(trie->nodes);
 }
 
@@ -109,8 +108,8 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
             node = &trie->nodes[succ_node_num];
         } else {
             node = trie_add_successor(trie, node, *key);
-            node->subtree_intersection = trie->alloc_bitset();
-            node->subtree_intersection_of_aux_bitsets = trie->alloc_bitset();
+            node->subtree_intersection = get_bitset(trie->bute);
+            node->subtree_intersection_of_aux_bitsets = get_bitset(trie->bute);
             set_first_k_bits(node->subtree_intersection, trie->graph_n);
             set_first_k_bits(node->subtree_intersection_of_aux_bitsets, trie->graph_n);
         }
