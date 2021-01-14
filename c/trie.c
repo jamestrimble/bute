@@ -75,18 +75,24 @@ struct TrieNode * trie_add_successor(struct Trie *trie, struct TrieNode *node, i
 }
 
 void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node, setword *set,
-        setword *aux_set, int num_additions_permitted, int *arr_out, int *arr_out_len)
+        setword *aux_set, int num_additions_permitted, int remaining_num_additions_permitted, int *arr_out, int *arr_out_len)
 {
+    if (popcount_of_set_difference(node->subtree_intersection, set, trie->m) > num_additions_permitted) {
+        return;
+    }
+    if (!intersection_is_empty(aux_set, node->subtree_intersection_of_aux_bitsets, trie->m)) {
+        return;
+    }
     if (node->val != -1) {
         arr_out[(*arr_out_len)++] = node->val;
     }
     for (int i=0; i<node->successor_len; i++) {
         int succ_node_num = node->successor_node_num[i];
         struct TrieNode *succ = &trie->nodes[succ_node_num];
-        if (popcount_of_set_difference(succ->subtree_intersection, set, trie->m) <= num_additions_permitted &&
-                intersection_is_empty(aux_set, succ->subtree_intersection_of_aux_bitsets, trie->m)) {
+        int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, succ->key);
+        if (new_remaining_num_additions_permitted >= 0) {
             trie_get_all_almost_subsets_helper(trie, succ, set, aux_set, num_additions_permitted,
-                    arr_out, arr_out_len);
+                    new_remaining_num_additions_permitted, arr_out, arr_out_len);
         }
     }
 }
@@ -94,7 +100,7 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
 void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_set, int num_additions_permitted, int *arr_out, int *arr_out_len)
 {
     *arr_out_len = 0;
-    trie_get_all_almost_subsets_helper(trie, &trie->root, set, aux_set, num_additions_permitted, arr_out, arr_out_len);
+    trie_get_all_almost_subsets_helper(trie, &trie->root, set, aux_set, num_additions_permitted, num_additions_permitted, arr_out, arr_out_len);
 }
 
 // key is an array terminated by -1
