@@ -256,16 +256,15 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
 //        printf(" %d\n", STSs_len);
         int new_STSs_len = 0;
         setword **new_STSs = make_STSs(STSs, STSs_len, bute, G, root_depth, &set_root, &new_STSs_len);
-        if (set_root.sz == prev_set_root_size) {
-            free(new_STSs);
-            break;
-        }
         for (int i=0; i<STSs_len; i++) {
             free_bitset(bute, STSs[i]);
         }
         free(STSs);
         STSs = new_STSs;
         STSs_len = new_STSs_len;
+        if (set_root.sz == prev_set_root_size) {
+            break;
+        }
 
         if (root_depth == 1) {
             int total_size = 0;
