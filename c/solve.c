@@ -9,10 +9,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define BUFFERSIZE 1024
-
-/*************************************/
-
 // Returns a pointer to the first bitset in a linked list
 struct Bitset *make_connected_components(setword *vv, struct Graph G, struct Bute *bute)
 {
@@ -370,43 +366,6 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
     free(leafysets);
     hash_destroy(&set_root);
     return retval;
-}
-
-struct Graph read_graph()
-{
-    char s[BUFFERSIZE], s1[32], s2[32];
-    int n, edge_count;
-    int m = 0;   // number of setwords needed to store n bits
-    int v, w;
-    int num_edges_read = 0;
-    graph *g = NULL;
-    while (true) {
-        if (fgets(s, BUFFERSIZE, stdin) == NULL)
-            break;
-
-        switch (s[0]) {
-        case '\n':
-            break;
-        case 'c':
-            break;
-        case 'p':
-            if(sscanf(s, "%s %s %d %d", s1, s2, &n, &edge_count) != 4)
-                exit(1);
-            m = SETWORDSNEEDED(n);
-            g = calloc(n * m, sizeof(graph));
-            break;
-        default:
-            if (sscanf(s, "%d %d", &v, &w) != 2)
-                exit(1);
-            if (v == w)
-                continue;
-            --v;
-            --w;
-            ADDONEEDGE(g, v, w, m);
-            ++num_edges_read;
-        }
-    }
-    return (struct Graph) {g, n, m};
 }
 
 int optimise(struct Graph G, int *parent, struct Bute *bute)

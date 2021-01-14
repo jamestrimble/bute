@@ -12,4 +12,8 @@ struct Graph
 
 void find_adjacent_vv(setword *s, struct Graph G, setword *adj_vv);
 
+struct Graph read_graph();
+
+struct Graph create_empty_graph(int n);
+
 #endif
