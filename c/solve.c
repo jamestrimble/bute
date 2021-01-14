@@ -109,8 +109,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
         trie_init(&trie, G.n, G.m, bute);
     int *almost_subset_end_positions = malloc(filtered_STSs_len * sizeof *almost_subset_end_positions);
 
-    int *nd_arr = malloc((G.n+1) * sizeof *nd_arr);
-
     struct SetAndNeighbourhood *further_filtered_STSs = malloc(filtered_STSs_len * sizeof *further_filtered_STSs);
 
     for (int i=filtered_STSs_len-1; i>=0; i--) {
@@ -191,17 +189,7 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
 
         if (filtered_STSs_len >= MIN_LEN_FOR_TRIE) {
             if (root_depth > popcount(filtered_STSs[i].nd, G.m)) {
-                if (i == filtered_STSs_len-1 || !bitset_equals(filtered_STSs[i].nd, filtered_STSs[i+1].nd, G.m)) {
-                    int pos = 0;
-                    FOR_EACH_IN_BITSET(w, filtered_STSs[i].nd, G.m)
-                        nd_arr[pos++] = w;
-                    END_FOR_EACH_IN_BITSET
-                    nd_arr[pos] = -1;
-                    trie_add_key_val(&trie, nd_arr, filtered_STSs[i].nd, i);
-                }
-                // There's no need to consider a subtrie all of whose keys contain a vertex v that is
-                // in the new union of sets or their neighbourhood
-                trie_add_an_aux_bitset(&trie, nd_arr, filtered_STSs[i].set);
+                trie_add_element(&trie, filtered_STSs[i].nd, filtered_STSs[i].set, i);
             }
         }
     }
@@ -209,7 +197,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
     if (filtered_STSs_len >= MIN_LEN_FOR_TRIE)
         trie_destroy(&trie);
     free(almost_subset_end_positions);
-    free(nd_arr);
 }
 
 setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Graph G,

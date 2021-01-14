@@ -103,38 +103,24 @@ void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_s
     trie_get_all_almost_subsets_helper(trie, &trie->root, set, aux_set, num_additions_permitted, num_additions_permitted, arr_out, arr_out_len);
 }
 
-// key is an array terminated by -1
-void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
+void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitset, int val)
 {
     struct TrieNode *node = &trie->root;
     bitset_intersect_with(node->subtree_intersection, key_bitset, trie->m);
-    while (*key != -1) {
-        int succ_node_num = trie_get_successor_node_num(trie, node, *key);
+    bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
+    FOR_EACH_IN_BITSET(v, key_bitset, trie->m)
+        int succ_node_num = trie_get_successor_node_num(trie, node, v);
         if (succ_node_num != -1) {
             node = &trie->nodes[succ_node_num];
+            bitset_intersect_with(node->subtree_intersection, key_bitset, trie->m);
+            bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
         } else {
-            node = trie_add_successor(trie, node, *key);
-            node->subtree_intersection = get_bitset(trie->bute);
-            node->subtree_intersection_of_aux_bitsets = get_bitset(trie->bute);
-            set_first_k_bits(node->subtree_intersection, trie->graph_n);
-            set_first_k_bits(node->subtree_intersection_of_aux_bitsets, trie->graph_n);
+            node = trie_add_successor(trie, node, v);
+            node->subtree_intersection = get_copy_of_bitset(trie->bute, key_bitset);
+            node->subtree_intersection_of_aux_bitsets = get_copy_of_bitset(trie->bute, aux_bitset);
         }
-        bitset_intersect_with(node->subtree_intersection, key_bitset, trie->m);
-        ++key;
-    }
-    node->val = val;
-}
-
-void trie_add_an_aux_bitset(struct Trie *trie, int *key, setword *aux_bitset)
-{
-    struct TrieNode *node = &trie->root;
-    bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
-    while (*key != -1) {
-        int succ_node_num = trie_get_successor_node_num(trie, node, *key);
-        node = &trie->nodes[succ_node_num];
-        bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
-        ++key;
+    END_FOR_EACH_IN_BITSET
+    if (node->val == -1) {   // if this leaf node did not already exist
+        node->val = val;
     }
 }
-
-
