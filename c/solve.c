@@ -44,6 +44,50 @@ int cmp_sorted_position(const void *a, const void *b) {
     return a_position - b_position;
 }
 
+void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *union_of_subtrees,
+        setword *nd_of_union_of_subtrees, int root_depth, struct hash_map *set_root,
+        struct hash_map *new_STSs_hash_set)
+{
+    setword *adj_vv = get_copy_of_bitset(bute, nd_of_union_of_subtrees);
+    bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m), G.m);
+    bitset_removeall(adj_vv, union_of_subtrees, G.m);
+    DELELEMENT(adj_vv, w);
+    if (popcount(adj_vv, G.m) < root_depth) {
+        setword *STS = get_copy_of_bitset(bute, union_of_subtrees);
+        ADDELEMENT(STS, w);
+        if (intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
+                intersection_is_empty(bute->vv_that_dominate[w], STS, G.m) &&
+                !hash_iselement(set_root, STS)) {
+            hash_add(new_STSs_hash_set, STS, 1);
+            hash_add(set_root, STS, w);
+        }
+        free_bitset(bute, STS);
+    }
+    free_bitset(bute, adj_vv);
+}
+
+void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_roots,
+        struct SetAndNeighbourhood *further_filtered_STSs, int further_filtered_STSs_len,
+        setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth)
+{
+    setword *new_big_union = get_empty_bitset(bute);
+    for (int i=0; i<further_filtered_STSs_len; i++) {
+        bitset_addall(new_big_union, further_filtered_STSs[i].set, G.m);
+    }
+    FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
+        setword *adj_vv = get_copy_of_bitset(bute, nd_of_new_union_of_subtrees);
+        bitset_addall(adj_vv, GRAPHROW(G.g,v,G.m), G.m);
+        bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
+        DELELEMENT(adj_vv, v);
+        bitset_removeall(adj_vv, new_big_union, G.m);
+        if (popcount(adj_vv, G.m) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, bute->adj_vv_dominated_by[v], G.m)) {
+            DELELEMENT(new_possible_STS_roots, v);
+        }
+        free_bitset(bute, adj_vv);
+    END_FOR_EACH_IN_BITSET
+    free_bitset(bute, new_big_union);
+}
+
 // if filtered_STSs_len is small, use a simple filtering algorithm to
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 50
@@ -54,22 +98,8 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
 {
     ++tmp_counter;
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
-        setword *adj_vv = get_copy_of_bitset(bute, nd_of_union_of_subtrees);
-        bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m), G.m);
-        bitset_removeall(adj_vv, union_of_subtrees, G.m);
-        DELELEMENT(adj_vv, w);
-        if (popcount(adj_vv, G.m) < root_depth) {
-            setword *STS = get_copy_of_bitset(bute, union_of_subtrees);
-            ADDELEMENT(STS, w);
-            if (intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
-                    intersection_is_empty(bute->vv_that_dominate[w], STS, G.m) &&
-                    !hash_iselement(set_root, STS)) {
-                hash_add(new_STSs_hash_set, STS, 1);
-                hash_add(set_root, STS, w);
-            }
-            free_bitset(bute, STS);
-        }
-        free_bitset(bute, adj_vv);
+        try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
+                set_root, new_STSs_hash_set);
     END_FOR_EACH_IN_BITSET
 
     struct Trie trie;
@@ -83,7 +113,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
     struct SetAndNeighbourhood *further_filtered_STSs = malloc(filtered_STSs_len * sizeof *further_filtered_STSs);
 
     for (int i=filtered_STSs_len-1; i>=0; i--) {
-        setword *new_big_union = get_empty_bitset(bute);
         setword *s = filtered_STSs[i].set;
         setword *new_possible_STS_roots = get_copy_of_bitset(bute, possible_STS_roots);
         bitset_intersect_with(new_possible_STS_roots, filtered_STSs[i].nd, G.m);
@@ -122,7 +151,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
                     struct SetAndNeighbourhood fl = filtered_STSs[iter];
                     if (intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m)) {
                         further_filtered_STSs[further_filtered_STSs_len++] = fl;
-                        bitset_addall(new_big_union, fl.set, G.m);
                     }
                     if (STS_is_first_of_equal_nd_run[iter]) {
                         break;
@@ -139,21 +167,11 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
                 if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m))
                     continue;
                 further_filtered_STSs[further_filtered_STSs_len++] = fl;
-                bitset_addall(new_big_union, fl.set, G.m);
             }
         }
 
-        FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
-            setword *adj_vv = get_copy_of_bitset(bute, nd_of_new_union_of_subtrees);
-            bitset_addall(adj_vv, GRAPHROW(G.g,v,G.m), G.m);
-            bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
-            DELELEMENT(adj_vv, v);
-            bitset_removeall(adj_vv, new_big_union, G.m);
-            if (popcount(adj_vv, G.m) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, bute->adj_vv_dominated_by[v], G.m)) {
-                DELELEMENT(new_possible_STS_roots, v);
-            }
-            free_bitset(bute, adj_vv);
-        END_FOR_EACH_IN_BITSET
+        filter_roots(bute, G, new_possible_STS_roots, further_filtered_STSs, further_filtered_STSs_len,
+                new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth);
 
         if (!isempty(new_possible_STS_roots, G.m)) {
             qsort(further_filtered_STSs, further_filtered_STSs_len, sizeof *further_filtered_STSs, cmp_sorted_position);
@@ -167,7 +185,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
         free_bitset(bute, new_possible_STS_roots);
 
         free_bitset(bute, new_union_of_subtrees);
-        free_bitset(bute, new_big_union);
 
         if (i == 0 || !bitset_equals(filtered_STSs[i].nd, filtered_STSs[i-1].nd, G.m)) {
             STS_is_first_of_equal_nd_run[i] = true;
