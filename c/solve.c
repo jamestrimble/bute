@@ -176,10 +176,8 @@ void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct has
         free_bitset(bute, new_possible_STS_roots);
         free_bitset(bute, new_union_of_subtrees);
 
-        if (STSs_len >= MIN_LEN_FOR_TRIE) {
-            if (root_depth > popcount(STSs[i].nd, G.m)) {
-                trie_add_element(&trie, STSs[i].nd, STSs[i].set, i);
-            }
+        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > popcount(STSs[i].nd, G.m)) {
+            trie_add_element(&trie, STSs[i].nd, STSs[i].set, i);
         }
     }
     free(filtered_STSs);
