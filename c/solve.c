@@ -20,83 +20,6 @@ int m = 0;
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
-void set_first_k_bits(setword *bitset, int k)
-{
-    int wordnum = 0;
-    while (k > 63) {
-        bitset[wordnum] = ~0ull;
-        ++wordnum;
-        k -= 64;
-    }
-    for (int i=0; i<k; i++) {
-        ADDELEMENT(bitset + wordnum, i);
-    }
-}
-
-void bitset_intersect_with(setword *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++)
-        vv[i] &= ww[i];
-}
-
-int popcount_of_set_difference(setword const *vv, setword const *ww)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i] & ~ww[i]);
-    return count;
-}
-
-bool intersection_is_empty(setword *vv, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i] & ww[i])
-            return false;
-    return true;
-}
-
-bool bitsets_are_equal(setword *vv, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i] != ww[i])
-            return false;
-    return true;
-}
-
-bool bitset_is_superset(setword *vv, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (ww[i] & ~vv[i])
-            return false;
-    return true;
-}
-
-bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww)
-{
-    for (int i=0; i<m; i++)
-        if (ww[i] & ~(vv[i] | uu[i]))
-            return false;
-    return true;
-}
-
-void bitset_union(setword *dest, setword const *src1, setword const *src2)
-{
-    for (int i=0; i<m; i++)
-        dest[i] = src1[i] | src2[i];
-}
-
-void bitset_addall(setword *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++)
-        vv[i] |= ww[i];
-}
-
-void bitset_removeall(setword *vv, setword const *ww)
-{
-    for (int i=0; i<m; i++)
-        vv[i] &= ~ww[i];
-}
-
 int bitset_compare(setword const *vv, setword const *ww)
 {
     for (int i=0; i<m; i++) {
@@ -107,33 +30,11 @@ int bitset_compare(setword const *vv, setword const *ww)
     return 0;
 }
 
-void clear_bitset(setword *vv)
-{
-    for (int i=0; i<m; i++)
-        vv[i] = 0;
-}
-
-bool isempty(setword *vv)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i])
-            return false;
-    return true;
-}
-
 int popcount(setword const *vv)
 {
     int count = 0;
     for (int i=0; i<m; i++)
         count += POPCOUNT(vv[i]);
-    return count;
-}
-
-int popcount_of_union(setword const *vv, setword const *ww)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i] | ww[i]);
     return count;
 }
 
@@ -305,7 +206,7 @@ bool hash_get_val(struct hash_set *s, setword *key, int *val)
     unsigned h = hash(key) % s->M;
     struct hash_chain_element *p = s->chain_heads[h];
     while (p) {
-        if (bitsets_are_equal(p->key, key)) {
+        if (bitset_equals(p->key, key, s->m)) {
             *val = p->val;
             return true;
         }
@@ -377,6 +278,7 @@ struct Trie
     struct TrieNode root;
     int nodes_len;
     int graph_n;
+    int m;
 };
 
 void trie_node_init(struct TrieNode *node, int key)
@@ -387,9 +289,10 @@ void trie_node_init(struct TrieNode *node, int key)
     node->successor_len = 0;
 }
 
-void trie_init(struct Trie *trie, int n)
+void trie_init(struct Trie *trie, int n, int m)
 {
     trie->graph_n = n;
+    trie->m = m;
     trie->nodes_len = 0;
     trie->nodes = NULL;
 
@@ -456,8 +359,8 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
     for (int i=0; i<node->successor_len; i++) {
         int succ_node_num = node->successor_node_num[i];
         struct TrieNode *succ = &trie->nodes[succ_node_num];
-        if (popcount_of_set_difference(succ->subtree_intersection, set) <= num_additions_permitted &&
-                intersection_is_empty(aux_set, succ->subtree_intersection_of_aux_bitsets)) {
+        if (popcount_of_set_difference(succ->subtree_intersection, set, trie->m) <= num_additions_permitted &&
+                intersection_is_empty(aux_set, succ->subtree_intersection_of_aux_bitsets, trie->m)) {
             trie_get_all_almost_subsets_helper(trie, succ, set, aux_set, num_additions_permitted,
                     arr_out, arr_out_len);
         }
@@ -474,7 +377,7 @@ void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_s
 void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
 {
     struct TrieNode *node = &trie->root;
-    bitset_intersect_with(node->subtree_intersection, key_bitset);
+    bitset_intersect_with(node->subtree_intersection, key_bitset, trie->m);
     while (*key != -1) {
         int succ_node_num = trie_get_successor_node_num(trie, node, *key);
         if (succ_node_num != -1) {
@@ -486,7 +389,7 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
             set_first_k_bits(node->subtree_intersection, trie->graph_n);
             set_first_k_bits(node->subtree_intersection_of_aux_bitsets, trie->graph_n);
         }
-        bitset_intersect_with(node->subtree_intersection, key_bitset);
+        bitset_intersect_with(node->subtree_intersection, key_bitset, trie->m);
         ++key;
     }
     node->val = val;
@@ -495,11 +398,11 @@ void trie_add_key_val(struct Trie *trie, int *key, setword *key_bitset, int val)
 void trie_add_an_aux_bitset(struct Trie *trie, int *key, setword *aux_bitset)
 {
     struct TrieNode *node = &trie->root;
-    bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset);
+    bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
     while (*key != -1) {
         int succ_node_num = trie_get_successor_node_num(trie, node, *key);
         node = &trie->nodes[succ_node_num];
-        bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset);
+        bitset_intersect_with(node->subtree_intersection_of_aux_bitsets, aux_bitset, trie->m);
         ++key;
     }
 }
@@ -544,8 +447,8 @@ void Dom_init(struct Dom *dom, struct Graph G)
                 setword *nd_of_w_and_v_and_w = get_copy_of_bitset(GRAPHROW(G.g, w, G.m));
                 ADDELEMENT(nd_of_w_and_v_and_w, v);
                 ADDELEMENT(nd_of_w_and_v_and_w, w);
-                if (bitset_is_superset(nd_of_w_and_v_and_w, nd_of_v_and_v_and_w)) {
-                    if (!bitsets_are_equal(nd_of_v_and_v_and_w, nd_of_w_and_v_and_w) || v < w) {
+                if (bitset_is_superset(nd_of_w_and_v_and_w, nd_of_v_and_v_and_w, G.m)) {
+                    if (!bitset_equals(nd_of_v_and_v_and_w, nd_of_w_and_v_and_w, G.m) || v < w) {
                         ADDELEMENT(dom->vv_dominated_by[w], v);
                         ADDELEMENT(dom->vv_that_dominate[v], w);
                         if (ISELEMENT(GRAPHROW(G.g, w, G.m), v)) {
@@ -603,7 +506,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
         for (int k=0; k<G.m; k++)
             component[k] = visited[k] & ~vv_in_prev_components[k];
 
-        bitset_addall(vv_in_prev_components, visited);
+        bitset_addall(vv_in_prev_components, visited, G.m);
     END_FOR_EACH_IN_BITSET
 
     free_bitset(vv_in_prev_components);
@@ -614,7 +517,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
 
 void find_adjacent_vv(setword *s, struct Graph G, setword *adj_vv)
 {
-    clear_bitset(adj_vv);
+    clear_bitset(adj_vv, G.m);
     FOR_EACH_IN_BITSET(v, s, G.m)
         for (int k=0; k<G.m; k++) {
             adj_vv[k] |= GRAPHROW(G.g, v, G.m)[k];
@@ -663,7 +566,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
     }
     struct Trie trie;
     if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE)
-        trie_init(&trie, G.n);
+        trie_init(&trie, G.n, G.m);
     int *almost_subset_end_positions = malloc(filtered_leafysets_len * sizeof *almost_subset_end_positions);
     bool *leafyset_is_first_of_equal_nd_run = calloc(filtered_leafysets_len, sizeof *leafyset_is_first_of_equal_nd_run);
 
@@ -675,23 +578,23 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         setword *new_big_union = get_empty_bitset();
         setword *s = filtered_leafysets[i].set;
         setword *new_possible_leafyset_roots = get_copy_of_bitset(possible_leafyset_roots);
-        bitset_intersect_with(new_possible_leafyset_roots, filtered_leafysets[i].nd);
+        bitset_intersect_with(new_possible_leafyset_roots, filtered_leafysets[i].nd, G.m);
         setword *new_union_of_subtrees = get_copy_of_bitset(union_of_subtrees);
-        bitset_addall(new_union_of_subtrees, s);
+        bitset_addall(new_union_of_subtrees, s, G.m);
 
         setword *nd_of_new_union_of_subtrees = get_copy_of_bitset(nd_of_union_of_subtrees);
-        bitset_addall(nd_of_new_union_of_subtrees, filtered_leafysets[i].nd);
-        bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees);
+        bitset_addall(nd_of_new_union_of_subtrees, filtered_leafysets[i].nd, G.m);
+        bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees, G.m);
 
         FOR_EACH_IN_BITSET(w, new_possible_leafyset_roots, G.m)
             setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
-            bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m));
-            bitset_removeall(adj_vv, new_union_of_subtrees);
+            bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m), G.m);
+            bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
             if (popcount(adj_vv) <= root_depth) {
                 setword *leafyset = get_copy_of_bitset(new_union_of_subtrees);
                 ADDELEMENT(leafyset, w);
-                if (intersection_is_empty(dom->vv_dominated_by[w], adj_vv) &&
-                        intersection_is_empty(dom->vv_that_dominate[w], leafyset) &&
+                if (intersection_is_empty(dom->vv_dominated_by[w], adj_vv, G.m) &&
+                        intersection_is_empty(dom->vv_that_dominate[w], leafyset, G.m) &&
                         !hash_iselement(set_root, leafyset)) {
                     hash_add(new_leafysets_hash_set, leafyset, 1);
                     hash_add(set_root, leafyset, w);
@@ -702,7 +605,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         END_FOR_EACH_IN_BITSET
 
         setword *new_union_of_subtrees_and_nd = get_copy_of_bitset(new_union_of_subtrees);
-        bitset_addall(new_union_of_subtrees_and_nd, nd_of_new_union_of_subtrees);
+        bitset_addall(new_union_of_subtrees_and_nd, nd_of_new_union_of_subtrees, G.m);
         int further_filtered_leafysets_len = 0;
 
         if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE) {
@@ -711,7 +614,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
                     almost_subset_end_positions, &almost_subset_end_positions_len);
             if (root_depth == popcount(filtered_leafysets[i].nd)) {
                 int it = i + 1;
-                while (it < filtered_leafysets_len && bitsets_are_equal(filtered_leafysets[i].nd, filtered_leafysets[it].nd)) {
+                while (it < filtered_leafysets_len && bitset_equals(filtered_leafysets[i].nd, filtered_leafysets[it].nd, G.m)) {
                     it++;
                 }
                 if (it > i + 1) {
@@ -721,15 +624,15 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
             for (int j=0; j<almost_subset_end_positions_len; j++) {
                 int iter = almost_subset_end_positions[j];
                 struct SetAndNeighbourhood fl = filtered_leafysets[iter];
-                if (intersection_is_empty(fl.nd, new_possible_leafyset_roots) ||
-                        popcount_of_union(nd_of_new_union_of_subtrees, fl.nd) > root_depth) {
+                if (intersection_is_empty(fl.nd, new_possible_leafyset_roots, G.m) ||
+                        popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth) {
                     continue;
                 }
                 for ( ; iter > i; iter--) {
                     struct SetAndNeighbourhood fl = filtered_leafysets[iter];
-                    if (intersection_is_empty(new_union_of_subtrees_and_nd, fl.set)) {
+                    if (intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m)) {
                         further_filtered_leafysets[further_filtered_leafysets_len++] = fl;
-                        bitset_addall(new_big_union, fl.set);
+                        bitset_addall(new_big_union, fl.set, G.m);
                     }
                     if (leafyset_is_first_of_equal_nd_run[iter]) {
                         break;
@@ -739,36 +642,36 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         } else {
             for (int j=i+1; j<filtered_leafysets_len; j++) {
                 struct SetAndNeighbourhood fl = filtered_leafysets[j];
-                if (intersection_is_empty(fl.nd, new_possible_leafyset_roots))
+                if (intersection_is_empty(fl.nd, new_possible_leafyset_roots, G.m))
                     continue;
-                if (popcount_of_union(nd_of_new_union_of_subtrees, fl.nd) > root_depth)
+                if (popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth)
                     continue;
-                if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set))
+                if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m))
                     continue;
                 further_filtered_leafysets[further_filtered_leafysets_len++] = fl;
-                bitset_addall(new_big_union, fl.set);
+                bitset_addall(new_big_union, fl.set, G.m);
             }
         }
 
         qsort(further_filtered_leafysets, further_filtered_leafysets_len, sizeof *further_filtered_leafysets, cmp_nd_popcount_desc);
 
-        setword *adj_vv = get_bitset();
         FOR_EACH_IN_BITSET(v, new_possible_leafyset_roots, G.m)
-            bitset_union(adj_vv, nd_of_new_union_of_subtrees, GRAPHROW(G.g,v,G.m));
-            bitset_removeall(adj_vv, new_union_of_subtrees);
+            setword *adj_vv = get_copy_of_bitset(nd_of_new_union_of_subtrees);
+            bitset_addall(adj_vv, GRAPHROW(G.g,v,G.m), G.m);
+            bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
             DELELEMENT(adj_vv, v);
-            bitset_removeall(adj_vv, new_big_union);
-            if (popcount(adj_vv) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, dom->adj_vv_dominated_by[v])) {
+            bitset_removeall(adj_vv, new_big_union, G.m);
+            if (popcount(adj_vv) >= root_depth || !bitset_union_is_superset(new_big_union, new_union_of_subtrees, dom->adj_vv_dominated_by[v], G.m)) {
                 DELELEMENT(new_possible_leafyset_roots, v);
             }
+            free_bitset(adj_vv);
         END_FOR_EACH_IN_BITSET
 
-        if (!isempty(new_possible_leafyset_roots)) {
+        if (!isempty(new_possible_leafyset_roots, G.m)) {
             make_leafysets_helper(further_filtered_leafysets, further_filtered_leafysets_len, leafysets_as_set,
                     G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_set);
         }
 
-        free_bitset(adj_vv);
         free_bitset(new_union_of_subtrees_and_nd);
 
         free_bitset(nd_of_new_union_of_subtrees);
@@ -777,12 +680,12 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
         free_bitset(new_union_of_subtrees);
         free_bitset(new_big_union);
 
-        if (i == 0 || !bitsets_are_equal(filtered_leafysets[i].nd, filtered_leafysets[i-1].nd)) {
+        if (i == 0 || !bitset_equals(filtered_leafysets[i].nd, filtered_leafysets[i-1].nd, G.m)) {
             leafyset_is_first_of_equal_nd_run[i] = true;
         }
         if (filtered_leafysets_len >= MIN_LEN_FOR_TRIE) {
             if (root_depth > popcount(filtered_leafysets[i].nd)) {
-                if (i == filtered_leafysets_len-1 || !bitsets_are_equal(filtered_leafysets[i].nd, filtered_leafysets[i+1].nd)) {
+                if (i == filtered_leafysets_len-1 || !bitset_equals(filtered_leafysets[i].nd, filtered_leafysets[i+1].nd, G.m)) {
                     int pos = 0;
                     FOR_EACH_IN_BITSET(w, filtered_leafysets[i].nd, G.m)
                         nd_arr[pos++] = w;
@@ -825,7 +728,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     for (int v=0; v<G.n; v++) {
         setword *single_vtx_leafyset = get_empty_bitset();
         ADDELEMENT(single_vtx_leafyset, v);
-        if (popcount(GRAPHROW(G.g, v, G.m)) < root_depth && isempty(dom->adj_vv_dominated_by[v])
+        if (popcount(GRAPHROW(G.g, v, G.m)) < root_depth && isempty(dom->adj_vv_dominated_by[v], G.m)
                 && !hash_iselement(set_root, single_vtx_leafyset)) {
             hash_add(&new_leafysets_hash_set, single_vtx_leafyset, 1);
             hash_add(set_root, single_vtx_leafyset, v);
