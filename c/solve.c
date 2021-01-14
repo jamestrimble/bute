@@ -104,7 +104,7 @@ struct hash_chain_element
     setword key[];
 };
 
-struct hash_set
+struct hash_map
 {
     int M;
     int sz;
@@ -112,7 +112,7 @@ struct hash_set
     int m;
 };
 
-void hash_init(struct hash_set *s, int m)
+void hash_init(struct hash_map *s, int m)
 {
     s->M = 1;
     s->sz = 0;
@@ -141,7 +141,7 @@ unsigned hash(setword *x)
     return result;
 }
 
-void hash_grow(struct hash_set *s)
+void hash_grow(struct hash_map *s)
 {
 //    printf("growing from %d to %d\n", s->M, s->M * 2);
     // grow the table
@@ -165,7 +165,7 @@ void hash_grow(struct hash_set *s)
 }
 
 // Assumption: key is not in s already
-void hash_add(struct hash_set *s, setword * key, int val)
+void hash_add(struct hash_map *s, setword * key, int val)
 {
 //    printf("adding\n");
 //    printf("HASH %d\n", (int)hash(key));
@@ -183,7 +183,7 @@ void hash_add(struct hash_set *s, setword * key, int val)
     }
 }
 
-bool hash_get_val(struct hash_set *s, setword *key, int *val)
+bool hash_get_val(struct hash_map *s, setword *key, int *val)
 {
     unsigned h = hash(key) % s->M;
     struct hash_chain_element *p = s->chain_heads[h];
@@ -197,13 +197,13 @@ bool hash_get_val(struct hash_set *s, setword *key, int *val)
     return false;
 }
 
-bool hash_iselement(struct hash_set *s, setword *key)
+bool hash_iselement(struct hash_map *s, setword *key)
 {
     int junk;
     return hash_get_val(s, key, &junk);
 }
 
-setword ** hash_set_to_list(struct hash_set *s)
+setword ** hash_map_to_list(struct hash_map *s)
 {
     setword **retval = malloc(s->sz * sizeof *retval);
     int j = 0;
@@ -221,7 +221,7 @@ setword ** hash_set_to_list(struct hash_set *s)
     return retval;
 }
 
-void hash_destroy(struct hash_set *s)
+void hash_destroy(struct hash_map *s)
 {
     for (int i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];
@@ -547,9 +547,9 @@ int cmp_sorted_position(const void *a, const void *b) {
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 50
 
-void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int filtered_leafysets_len, struct hash_set *leafysets_as_set,
+void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int filtered_leafysets_len, struct hash_map *leafysets_as_set,
         struct Graph G, struct Dom *dom, setword *possible_leafyset_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
-        int root_depth, struct hash_set *set_root, struct hash_set *new_leafysets_hash_set)
+        int root_depth, struct hash_map *set_root, struct hash_map *new_leafysets_hash_map)
 {
     if (!filtered_leafysets_len) {
         return;
@@ -586,7 +586,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
                 if (intersection_is_empty(dom->vv_dominated_by[w], adj_vv, G.m) &&
                         intersection_is_empty(dom->vv_that_dominate[w], leafyset, G.m) &&
                         !hash_iselement(set_root, leafyset)) {
-                    hash_add(new_leafysets_hash_set, leafyset, 1);
+                    hash_add(new_leafysets_hash_map, leafyset, 1);
                     hash_add(set_root, leafyset, w);
                 }
                 free_bitset(leafyset);
@@ -659,7 +659,7 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
         if (!isempty(new_possible_leafyset_roots, G.m)) {
             make_leafysets_helper(further_filtered_leafysets, further_filtered_leafysets_len, leafysets_as_set,
-                    G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_set);
+                    G, dom, new_possible_leafyset_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_leafysets_hash_map);
         }
 
         free_bitset(new_union_of_subtrees_and_nd);
@@ -699,11 +699,11 @@ void make_leafysets_helper(struct SetAndNeighbourhood *filtered_leafysets, int f
 
 setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         struct Dom *dom,
-        int root_depth, struct hash_set *set_root, int *new_leafysets_len)
+        int root_depth, struct hash_map *set_root, int *new_leafysets_len)
 {
-    struct hash_set new_leafysets_hash_set;
-    hash_init(&new_leafysets_hash_set, G.m);
-    struct hash_set leafysets_as_set;
+    struct hash_map new_leafysets_hash_map;
+    hash_init(&new_leafysets_hash_map, G.m);
+    struct hash_map leafysets_as_set;
     hash_init(&leafysets_as_set, G.m);
     struct SetAndNeighbourhood *leafysets_and_nds = malloc(leafysets_len * sizeof *leafysets_and_nds);
     for (int i=0; i<leafysets_len; i++) {
@@ -723,7 +723,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         ADDELEMENT(single_vtx_leafyset, v);
         if (popcount(GRAPHROW(G.g, v, G.m), G.m) < root_depth && isempty(dom->adj_vv_dominated_by[v], G.m)
                 && !hash_iselement(set_root, single_vtx_leafyset)) {
-            hash_add(&new_leafysets_hash_set, single_vtx_leafyset, 1);
+            hash_add(&new_leafysets_hash_map, single_vtx_leafyset, 1);
             hash_add(set_root, single_vtx_leafyset, v);
         }
         free_bitset(single_vtx_leafyset);
@@ -739,7 +739,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
     }
 
     make_leafysets_helper(filtered_leafysets, filtered_leafysets_len, &leafysets_as_set,
-            G, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_set);
+            G, dom, full_set, empty_set, empty_set, root_depth, set_root, &new_leafysets_hash_map);
     free(filtered_leafysets);
     free_bitset(empty_set);
     free_bitset(full_set);
@@ -748,14 +748,14 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Graph G,
         free_bitset(leafysets_and_nds[i].nd);
     }
     free(leafysets_and_nds);
-    setword **retval = hash_set_to_list(&new_leafysets_hash_set);
-    *new_leafysets_len = new_leafysets_hash_set.sz;
-    hash_destroy(&new_leafysets_hash_set);
+    setword **retval = hash_map_to_list(&new_leafysets_hash_map);
+    *new_leafysets_len = new_leafysets_hash_map.sz;
+    hash_destroy(&new_leafysets_hash_map);
     hash_destroy(&leafysets_as_set);
     return retval;
 }
 
-void add_parents(int *parent, struct Graph G, struct hash_set *set_root, setword *s, int parent_vertex)
+void add_parents(int *parent, struct Graph G, struct hash_map *set_root, setword *s, int parent_vertex)
 {
     int v;
     if (!hash_get_val(set_root, s, &v)) {
@@ -776,7 +776,7 @@ void add_parents(int *parent, struct Graph G, struct hash_set *set_root, setword
 bool solve(struct Graph G, struct Dom *dom, int target, int *parent)
 {
     bool retval = false;
-    struct hash_set set_root;
+    struct hash_map set_root;
     hash_init(&set_root, G.m);
 
     setword **leafysets = malloc(G.n * sizeof *leafysets);
