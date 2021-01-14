@@ -16,4 +16,7 @@ struct Graph read_graph();
 
 struct Graph create_empty_graph(int n);
 
+// Returns a pointer to the first bitset in a linked list
+struct Bitset *make_connected_components(setword *vv, struct Graph G, struct Bute *bute);
+
 #endif

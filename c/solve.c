@@ -9,44 +9,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// Returns a pointer to the first bitset in a linked list
-struct Bitset *make_connected_components(setword *vv, struct Graph G, struct Bute *bute)
-{
-    struct Bitset *retval = NULL;
-    setword *visited = get_empty_bitset(bute);
-    setword *vv_in_prev_components = get_empty_bitset(bute);
-    int *queue = malloc(G.n * sizeof *queue);
-    FOR_EACH_IN_BITSET(v, vv, G.m)
-        if (ISELEMENT(visited, v))
-            continue;
-        int queue_len = 0;
-        ADDELEMENT(visited, v);
-        queue[queue_len++] = v;
-        while (queue_len) {
-            int u = queue[--queue_len];
-            FOR_EACH_IN_BITSET(w, GRAPHROW(G.g, u, G.m), G.m)
-                if (ISELEMENT(vv, w) && !ISELEMENT(visited, w)) {
-                    ADDELEMENT(visited, w);
-                    queue[queue_len++] = w;
-                }
-            END_FOR_EACH_IN_BITSET
-        }
-        struct Bitset *bitset = get_Bitset(bute);
-        bitset->next = retval;
-        retval = bitset;
-        setword *component = bitset->bitset;
-        for (int k=0; k<G.m; k++)
-            component[k] = visited[k] & ~vv_in_prev_components[k];
-
-        bitset_addall(vv_in_prev_components, visited, G.m);
-    END_FOR_EACH_IN_BITSET
-
-    free_bitset(bute, vv_in_prev_components);
-    free_bitset(bute, visited);
-    free(queue);
-    return retval;
-}
-
 struct SetAndNeighbourhood
 {
     setword *set;
