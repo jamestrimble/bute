@@ -256,10 +256,7 @@ setword **make_leafysets(setword **leafysets, int leafysets_len, struct Bute *bu
 void add_parents(struct Bute *bute, int *parent, struct Graph G, struct hash_map *set_root, setword *s, int parent_vertex)
 {
     int v;
-    if (!hash_get_val(set_root, s, &v)) {
-        printf("Something went wrong.\n");
-        exit(1);
-    }
+    hash_get_val(set_root, s, &v);
     parent[v] = parent_vertex;
     setword *vv_in_child_subtrees = get_copy_of_bitset(bute, s);
     DELELEMENT(vv_in_child_subtrees, v);
