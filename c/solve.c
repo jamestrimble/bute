@@ -57,9 +57,11 @@ void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *unio
         ADDELEMENT(STS, w);
         if (intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
                 intersection_is_empty(bute->vv_that_dominate[w], STS, G.m) &&
-                !hash_iselement(set_root, STS)) {
+                !hash_iselement(new_STSs_hash_set, STS)) {
             hash_add(new_STSs_hash_set, STS, 1);
-            hash_add(set_root, STS, w);
+            if (!hash_iselement(set_root, STS)) {
+                hash_add(set_root, STS, w);
+            }
         }
         free_bitset(bute, STS);
     }
@@ -271,29 +273,41 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
     struct hash_map set_root;
     hash_init(&set_root, bute);
 
-    setword **STSs = malloc(G.n * sizeof *STSs);
+    setword **STSs = NULL;
     int STSs_len = 0;
 
     for (int root_depth=target; root_depth>=1; root_depth--) {
+        int prev_set_root_size = set_root.sz;
 //        printf("target %d  root depth %d\n", target, root_depth);
 //        printf(" %d\n", STSs_len);
         int new_STSs_len = 0;
         setword **new_STSs = make_STSs(STSs, STSs_len, bute, G, root_depth, &set_root, &new_STSs_len);
-        if (new_STSs_len == 0) {
+        if (set_root.sz == prev_set_root_size) {
             free(new_STSs);
             break;
         }
-        STSs = realloc(STSs, (STSs_len + new_STSs_len) * sizeof *STSs);
-        for(int i=0; i<new_STSs_len; i++) {
-            STSs[STSs_len + i] = new_STSs[i];
-        }
-        STSs_len = STSs_len + new_STSs_len;
-
-        int k = 0;
         for (int i=0; i<STSs_len; i++) {
-            setword *adj_vv = get_bitset(bute);
-            find_adjacent_vv(STSs[i], G, adj_vv);
-            if (popcount(adj_vv, G.m) < root_depth) {
+            free_bitset(bute, STSs[i]);
+        }
+        free(STSs);
+        STSs = new_STSs;
+        STSs_len = new_STSs_len;
+
+        if (root_depth == 1) {
+            int total_size = 0;
+            for (int i=0; i<STSs_len; i++) {
+                total_size += popcount(STSs[i], G.m);
+            }
+            if (total_size == G.n) {
+                retval = true;
+                for (int i=0; i<STSs_len; i++) {
+                    add_parents(bute, parent, G, &set_root, STSs[i], -1);
+                }
+            }
+        } else {
+            for (int i=0; i<STSs_len; i++) {
+                setword *adj_vv = get_bitset(bute);
+                find_adjacent_vv(STSs[i], G, adj_vv);
                 if (!retval && popcount(STSs[i], G.m) + popcount(adj_vv, G.m) == G.n) {
                     retval = true;
                     int parent_vertex = -1;
@@ -303,14 +317,12 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
                     END_FOR_EACH_IN_BITSET
                     add_parents(bute, parent, G, &set_root, STSs[i], parent_vertex);
                 }
-                STSs[k++] = STSs[i];
-            } else {
-                free_bitset(bute, STSs[i]);
+                free_bitset(bute, adj_vv);
+                if (retval) {
+                    break;
+                }
             }
-            free_bitset(bute, adj_vv);
         }
-        STSs_len = k;
-        free(new_STSs);
         if (retval) {
             break;
         }
