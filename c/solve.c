@@ -106,7 +106,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
     if (filtered_STSs_len >= MIN_LEN_FOR_TRIE)
         trie_init(&trie, G.n, G.m, bute);
     int *almost_subset_end_positions = malloc(filtered_STSs_len * sizeof *almost_subset_end_positions);
-    bool *STS_is_first_of_equal_nd_run = calloc(filtered_STSs_len, sizeof *STS_is_first_of_equal_nd_run);
 
     int *nd_arr = malloc((G.n+1) * sizeof *nd_arr);
 
@@ -143,16 +142,18 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
             for (int j=0; j<almost_subset_end_positions_len; j++) {
                 int iter = almost_subset_end_positions[j];
                 struct SetAndNeighbourhood fl = filtered_STSs[iter];
+                setword *nd = fl.nd;
                 if (intersection_is_empty(fl.nd, new_possible_STS_roots, G.m) ||
                         popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth) {
                     continue;
                 }
-                for ( ; iter > i; iter--) {
+                for (;;) {
                     struct SetAndNeighbourhood fl = filtered_STSs[iter];
                     if (intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m)) {
                         further_filtered_STSs[further_filtered_STSs_len++] = fl;
                     }
-                    if (STS_is_first_of_equal_nd_run[iter]) {
+                    --iter;
+                    if (iter == i || !bitset_equals(nd, filtered_STSs[iter].nd, G.m)) {
                         break;
                     }
                 }
@@ -186,9 +187,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
 
         free_bitset(bute, new_union_of_subtrees);
 
-        if (i == 0 || !bitset_equals(filtered_STSs[i].nd, filtered_STSs[i-1].nd, G.m)) {
-            STS_is_first_of_equal_nd_run[i] = true;
-        }
         if (filtered_STSs_len >= MIN_LEN_FOR_TRIE) {
             if (root_depth > popcount(filtered_STSs[i].nd, G.m)) {
                 if (i == filtered_STSs_len-1 || !bitset_equals(filtered_STSs[i].nd, filtered_STSs[i+1].nd, G.m)) {
@@ -209,7 +207,6 @@ void make_STSs_helper(struct SetAndNeighbourhood *filtered_STSs, int filtered_ST
     if (filtered_STSs_len >= MIN_LEN_FOR_TRIE)
         trie_destroy(&trie);
     free(almost_subset_end_positions);
-    free(STS_is_first_of_equal_nd_run);
     free(nd_arr);
 }
 
