@@ -1,4 +1,5 @@
 #include "bitset.h"
+#include "graph.h"
 #include "hash_map.h"
 #include "trie.h"
 
@@ -96,16 +97,6 @@ void deallocate_Bitsets()
         bitset_free_list_head = next_to_free;
     }
 }
-
-
-/*************************************/
-
-struct Graph
-{
-    graph *g;
-    int n;
-    int m;   // number of words needed for a bitset containing n elements
-};
 
 /*************************************/
 
