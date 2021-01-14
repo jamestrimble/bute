@@ -12,17 +12,6 @@
 
 int m = 0;
 
-//https://stackoverflow.com/a/10380191/3347737
-#define PASTE_HELPER(a,b) a ## b
-#define PASTE(a,b) PASTE_HELPER(a,b)
-
-// If you use these macros, don't modify bitset while iterating over it!
-#define FOR_EACH_IN_BITSET_HELPER(v, bitset, m, i, sw, x) \
-           for (int i=0;i<m;i++) {setword sw=bitset[i]; while (sw) {int x; TAKEBIT(x, sw); int v=i*WORDSIZE+x;
-#define FOR_EACH_IN_BITSET(v, bitset, m) \
-           FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
-#define END_FOR_EACH_IN_BITSET }}
-
 /* We have a free-list of bitsets */
 
 struct Bitset
@@ -194,19 +183,6 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G)
     free_bitset(visited);
     free(queue);
     return retval;
-}
-
-void find_adjacent_vv(setword *s, struct Graph G, setword *adj_vv)
-{
-    clear_bitset(adj_vv, G.m);
-    FOR_EACH_IN_BITSET(v, s, G.m)
-        for (int k=0; k<G.m; k++) {
-            adj_vv[k] |= GRAPHROW(G.g, v, G.m)[k];
-        }
-    END_FOR_EACH_IN_BITSET
-    for (int k=0; k<G.m; k++) {
-        adj_vv[k] &= ~s[k];
-    }
 }
 
 struct SetAndNeighbourhood

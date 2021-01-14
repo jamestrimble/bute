@@ -2,6 +2,7 @@
 #define BITSET_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 // Use some of the same API as Nauty for bitsets
 
@@ -47,5 +48,16 @@ int popcount_of_union(setword const *vv, setword const *ww, int m);
 int bitset_compare(setword const *vv, setword const *ww, int m);
 
 int popcount(setword const *vv, int m);
+
+//https://stackoverflow.com/a/10380191/3347737
+#define PASTE_HELPER(a,b) a ## b
+#define PASTE(a,b) PASTE_HELPER(a,b)
+
+// If you use these macros, don't modify bitset while iterating over it!
+#define FOR_EACH_IN_BITSET_HELPER(v, bitset, m, i, sw, x) \
+           for (int i=0;i<m;i++) {setword sw=bitset[i]; while (sw) {int x; TAKEBIT(x, sw); int v=i*WORDSIZE+x;
+#define FOR_EACH_IN_BITSET(v, bitset, m) \
+           FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
+#define END_FOR_EACH_IN_BITSET }}
 
 #endif
