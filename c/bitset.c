@@ -124,8 +124,6 @@ struct Bitset *get_Bitset(struct Bute *bute)
 #endif
     if (bute->bitset_free_list_head == NULL) {
         struct Bitset *b = bute_xmalloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
-        if (b == NULL)
-            exit(1);
         b->next = NULL;
         bute->bitset_free_list_head = b;
     }
