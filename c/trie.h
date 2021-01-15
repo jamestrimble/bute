@@ -3,26 +3,11 @@
 
 #include "bitset.h"
 
-struct TrieNode
-{
-    int *successor_node_num;
-
-    // The intersection of sets in the subtree below this node.
-    // To simplify the code, there is a special case: initially, for the root node,
-    // this contains the set of all vertices.
-    setword *subtree_intersection;
-
-    setword *subtree_intersection_of_aux_bitsets;
-
-    int key;
-    int successor_len;
-    int val;
-};
+struct TrieNode;
 
 struct Trie
 {
-    struct TrieNode *nodes;
-    struct TrieNode root;
+    struct TrieNode *root;
     int nodes_len;
     int graph_n;
     int m;
