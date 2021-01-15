@@ -18,6 +18,27 @@ struct TrieNode
     setword bitsets[];
 };
 
+#define TRIE_POOL_SIZE 128
+struct TrieNodePool
+{
+    struct TrieNodePool *next;
+    unsigned char data[];
+};
+
+struct TrieNode *alloc_node(struct Trie *trie)
+{
+    if (trie->pool_len == TRIE_POOL_SIZE) {
+        struct TrieNodePool *new_pool = malloc(sizeof *new_pool + TRIE_POOL_SIZE * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
+        new_pool->next = trie->first_pool;
+        trie->first_pool = new_pool;
+        trie->pool_len = 0;
+    }
+    struct TrieNodePool *pool = trie->first_pool;
+    struct TrieNode *retval = (struct TrieNode *) (pool->data + trie->pool_len * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
+    ++trie->pool_len;
+    return retval;
+}
+
 void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
         setword *initial_subtrie_intersection,
         setword *initial_subtrie_intersection_of_aux_sets,
@@ -35,29 +56,24 @@ void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
 
 void trie_init(struct Trie *trie, int n, int m, struct Bute *bute)
 {
+    trie->first_pool = NULL;
+    trie->pool_len = TRIE_POOL_SIZE;
     trie->graph_n = n;
     trie->m = m;
     trie->bute = bute;
     setword * full_bitset = get_full_bitset(bute, trie->graph_n);
-    trie->root = malloc(sizeof *trie->root + 2 * trie->m * sizeof(setword));
+    trie->root = alloc_node(trie);
     trie_node_init(trie, trie->root, -1, full_bitset, full_bitset, NULL);
-}
-
-void trie_node_destroy(struct Trie * trie, struct TrieNode * node)
-{
-    struct TrieNode *child = node->first_child;
-    while (child) {
-        struct TrieNode *next_sibling = child->next_sibling;
-        trie_node_destroy(trie, child);
-        free(child);
-        child = next_sibling;
-    }
 }
 
 void trie_destroy(struct Trie *trie)
 {
-    trie_node_destroy(trie, trie->root);
-    free(trie->root);
+    struct TrieNodePool *pool = trie->first_pool;
+    while (pool) {
+        struct TrieNodePool *next_pool = pool->next;
+        free(pool);
+        pool = next_pool;
+    }
 }
 
 struct TrieNode *trie_get_child_node(struct Trie *trie, struct TrieNode *node, int key)
@@ -113,7 +129,7 @@ void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitse
             bitset_intersect_with(SUBTREE_INTERSECTION(trie, node), key_bitset, trie->m);
             bitset_intersect_with(SUBTREE_INTERSECTION_OF_AUX_BITSETS(trie, node), aux_bitset, trie->m);
         } else {
-            struct TrieNode *new_node = malloc(sizeof *new_node + 2 * trie->m * sizeof(setword));
+            struct TrieNode *new_node = alloc_node(trie);
             trie_node_init(trie, new_node, v, key_bitset, aux_bitset, node->first_child);
             node->first_child = new_node;
             node = new_node;

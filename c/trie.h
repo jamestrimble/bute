@@ -4,10 +4,13 @@
 #include "bitset.h"
 
 struct TrieNode;
+struct TrieNodePool;
 
 struct Trie
 {
     struct TrieNode *root;
+    struct TrieNodePool *first_pool;
+    int pool_len;
     int nodes_len;
     int graph_n;
     int m;
