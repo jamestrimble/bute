@@ -13,8 +13,8 @@ void set_first_k_bits(setword *bitset, int k)
         ++wordnum;
         k -= 64;
     }
-    for (int i=0; i<k; i++) {
-        ADDELEMENT(bitset + wordnum, i);
+    if (k) {
+        bitset[wordnum] = (1ull << k) - 1;
     }
 }
 
