@@ -208,8 +208,7 @@ setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Grap
     }
 
     setword *empty_set = get_empty_bitset(bute);
-    setword *full_set = get_empty_bitset(bute);
-    set_first_k_bits(full_set, G.n);
+    setword *full_set = get_full_bitset(bute, G.n);
 
     make_STSs_helper(STSs_and_nds_pointers, STSs_len, &STSs_as_set,
             bute, G, full_set, empty_set, empty_set, root_depth, set_root, &new_STSs_hash_set);

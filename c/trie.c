@@ -21,10 +21,8 @@ void trie_init(struct Trie *trie, int n, int m, struct Bute *bute)
     trie->bute = bute;
 
     trie_node_init(&trie->root, -1);
-    trie->root.subtree_intersection = get_bitset(bute);
-    trie->root.subtree_intersection_of_aux_bitsets = get_bitset(bute);
-    set_first_k_bits(trie->root.subtree_intersection, trie->graph_n);
-    set_first_k_bits(trie->root.subtree_intersection_of_aux_bitsets, trie->graph_n);
+    trie->root.subtree_intersection = get_full_bitset(bute, trie->graph_n);
+    trie->root.subtree_intersection_of_aux_bitsets = get_full_bitset(bute, trie->graph_n);
 }
 
 void trie_destroy(struct Trie *trie)

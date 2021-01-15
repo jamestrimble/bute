@@ -143,6 +143,13 @@ setword *get_empty_bitset(struct Bute *bute)
     return b;
 }
 
+setword *get_full_bitset(struct Bute *bute, int n)
+{
+    setword *b = get_bitset(bute);
+    set_first_k_bits(b, n);
+    return b;
+}
+
 setword *get_copy_of_bitset(struct Bute *bute, setword const *vv)
 {
     setword *b = get_bitset(bute);

@@ -21,8 +21,6 @@
 #define ADDONEEDGE(g, v, w, m) {ADDELEMENT(GRAPHROW(g, v, m), w); ADDELEMENT(GRAPHROW(g, w, m), v);}
 #define SETWORDSNEEDED(n) ((n + (64-1)) / 64)
 
-void set_first_k_bits(setword *bitset, int k);
-
 void bitset_intersect_with(setword *vv, setword const *ww, int m);
 
 int popcount_of_set_difference(setword const *vv, setword const *ww, int m);
@@ -75,6 +73,8 @@ struct Bitset *get_Bitset(struct Bute *bute);
 setword *get_bitset(struct Bute *bute);
 
 setword *get_empty_bitset(struct Bute *bute);
+
+setword *get_full_bitset(struct Bute *bute, int n);
 
 setword *get_copy_of_bitset(struct Bute *bute, setword const *vv);
 
