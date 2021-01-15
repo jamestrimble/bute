@@ -13,11 +13,6 @@ struct TrieNode
     struct TrieNode *first_child;
     struct TrieNode *next_sibling;
 
-    // An ugly optimisation to avoid the need to
-    // follow some pointers at query time.
-    int first_child_key;
-    int next_sibling_key;
-
     int key;
     int val;
 
@@ -58,8 +53,6 @@ void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
     node->val = -1;
     node->first_child = NULL;
     node->next_sibling = next_sibling;
-    node->first_child_key = -1;
-    node->next_sibling_key = next_sibling ? next_sibling->key : -1;
     for (int i=0; i<trie->m; i++) {
         SUBTREE_INTERSECTION(trie, node)[i] = initial_subtrie_intersection[i];
         SUBTREE_INTERSECTION_OF_AUX_BITSETS(trie, node)[i] = initial_subtrie_intersection_of_aux_sets[i];
@@ -115,14 +108,12 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
         arr_out[(*arr_out_len)++] = node->val;
     }
     struct TrieNode *child = node->first_child;
-    int child_key = node->first_child_key;
     while (child) {
-        int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child_key);
+        int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child->key);
         if (new_remaining_num_additions_permitted >= 0) {
             trie_get_all_almost_subsets_helper(trie, child, set, aux_set, num_additions_permitted,
                     new_remaining_num_additions_permitted, arr_out, arr_out_len);
         }
-        child_key = child->next_sibling_key;
         child = child->next_sibling;
     }
 }
@@ -148,7 +139,6 @@ void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitse
             struct TrieNode *new_node = alloc_node(trie);
             trie_node_init(trie, new_node, v, key_bitset, aux_bitset, node->first_child);
             node->first_child = new_node;
-            node->first_child_key = v;
             node = new_node;
         }
     END_FOR_EACH_IN_BITSET
