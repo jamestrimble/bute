@@ -16,7 +16,6 @@ struct SetAndNeighbourhood
     setword *set;
     setword *nd;
     int m;
-    int sorted_position;
 };
 
 int cmp_nd_popcount_desc(const void *a, const void *b) {
@@ -39,9 +38,11 @@ int cmp_nd_popcount_desc(const void *a, const void *b) {
 }
 
 int cmp_sorted_position(const void *a, const void *b) {
-    int a_position = ((const struct SetAndNeighbourhood *) a)->sorted_position;
-    int b_position = ((const struct SetAndNeighbourhood *) b)->sorted_position;
-    return a_position - b_position;
+    const struct SetAndNeighbourhood *pa = *((const struct SetAndNeighbourhood **) a);
+    const struct SetAndNeighbourhood *pb = *((const struct SetAndNeighbourhood **) b);
+    if (pa < pb)
+        return -1;
+    return pa > pb;
 }
 
 void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *union_of_subtrees,
@@ -69,12 +70,12 @@ void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *unio
 }
 
 void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_roots,
-        struct SetAndNeighbourhood *further_filtered_STSs, int further_filtered_STSs_len,
+        struct SetAndNeighbourhood **filtered_STSs, int filtered_STSs_len,
         setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth)
 {
     setword *new_big_union = get_empty_bitset(bute);
-    for (int i=0; i<further_filtered_STSs_len; i++) {
-        bitset_addall(new_big_union, further_filtered_STSs[i].set, G.m);
+    for (int i=0; i<filtered_STSs_len; i++) {
+        bitset_addall(new_big_union, filtered_STSs[i]->set, G.m);
     }
     FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
         setword *adj_vv = get_copy_of_bitset(bute, nd_of_new_union_of_subtrees);
@@ -94,7 +95,7 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 50
 
-void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct hash_map *STSs_as_set,
+void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct hash_map *STSs_as_set,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
         int root_depth, struct hash_map *set_root, struct hash_map *new_STSs_hash_set)
 {
@@ -109,42 +110,43 @@ void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct has
         trie_init(&trie, G.n, G.m, bute);
     int *almost_subset_end_positions = malloc(STSs_len * sizeof *almost_subset_end_positions);
 
-    struct SetAndNeighbourhood *filtered_STSs = malloc(STSs_len * sizeof *filtered_STSs);
+    struct SetAndNeighbourhood **filtered_STSs = malloc(STSs_len * sizeof *filtered_STSs);
 
     for (int i=STSs_len-1; i>=0; i--) {
-        setword *s = STSs[i].set;
+        setword *s = STSs[i]->set;
+        setword *nd = STSs[i]->nd;
         setword *new_possible_STS_roots = get_copy_of_bitset(bute, possible_STS_roots);
-        bitset_intersect_with(new_possible_STS_roots, STSs[i].nd, G.m);
+        bitset_intersect_with(new_possible_STS_roots, nd, G.m);
         setword *new_union_of_subtrees = get_copy_of_bitset(bute, union_of_subtrees);
         bitset_addall(new_union_of_subtrees, s, G.m);
 
         setword *nd_of_new_union_of_subtrees = get_copy_of_bitset(bute, nd_of_union_of_subtrees);
-        bitset_addall(nd_of_new_union_of_subtrees, STSs[i].nd, G.m);
+        bitset_addall(nd_of_new_union_of_subtrees, nd, G.m);
         bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees, G.m);
 
         setword *new_union_of_subtrees_and_nd = get_copy_of_bitset(bute, new_union_of_subtrees);
         bitset_addall(new_union_of_subtrees_and_nd, nd_of_new_union_of_subtrees, G.m);
 
-        struct SetAndNeighbourhood *candidates;
+        struct SetAndNeighbourhood **candidates;
         int candidates_len = 0;
         if (STSs_len >= MIN_LEN_FOR_TRIE) {
             candidates = filtered_STSs;         // we'll filter in place afterwards
             int almost_subset_end_positions_len;
-            trie_get_all_almost_subsets(&trie, STSs[i].nd, new_union_of_subtrees_and_nd, root_depth - popcount(STSs[i].nd, G.m),
+            trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - popcount(nd, G.m),
                     almost_subset_end_positions, &almost_subset_end_positions_len);
-            if (root_depth == popcount(STSs[i].nd, G.m)) {
+            if (root_depth == popcount(nd, G.m)) {
                 int it = i + 1;
-                while (it < STSs_len && bitset_equals(STSs[i].nd, STSs[it].nd, G.m)) {
+                while (it < STSs_len && bitset_equals(nd, STSs[it]->nd, G.m)) {
                     candidates[candidates_len++] = STSs[it++];
                 }
             }
             for (int j=0; j<almost_subset_end_positions_len; j++) {
                 int iter = almost_subset_end_positions[j];
-                setword *nd = STSs[iter].nd;
+                setword *first_nd_in_run = STSs[iter]->nd;
                 do {
                     candidates[candidates_len++] = STSs[iter];
                     --iter;
-                } while (iter > i && bitset_equals(nd, STSs[iter].nd, G.m));
+                } while (iter > i && bitset_equals(first_nd_in_run, STSs[iter]->nd, G.m));
             }
         } else {
             candidates = STSs + i+1;
@@ -152,14 +154,14 @@ void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct has
         }
         int filtered_STSs_len = 0;
         for (int j=0; j<candidates_len; j++) {
-            struct SetAndNeighbourhood fl = candidates[j];
-            if (intersection_is_empty(fl.nd, new_possible_STS_roots, G.m))
+            struct SetAndNeighbourhood candidate = *candidates[j];
+            if (intersection_is_empty(candidate.nd, new_possible_STS_roots, G.m))
                 continue;
-            if (popcount_of_union(nd_of_new_union_of_subtrees, fl.nd, G.m) > root_depth)
+            if (popcount_of_union(nd_of_new_union_of_subtrees, candidate.nd, G.m) > root_depth)
                 continue;
-            if (!intersection_is_empty(new_union_of_subtrees_and_nd, fl.set, G.m))
+            if (!intersection_is_empty(new_union_of_subtrees_and_nd, candidate.set, G.m))
                 continue;
-            filtered_STSs[filtered_STSs_len++] = fl;
+            filtered_STSs[filtered_STSs_len++] = candidates[j];
         }
 
         filter_roots(bute, G, new_possible_STS_roots, filtered_STSs, filtered_STSs_len,
@@ -176,8 +178,8 @@ void make_STSs_helper(struct SetAndNeighbourhood *STSs, int STSs_len, struct has
         free_bitset(bute, new_possible_STS_roots);
         free_bitset(bute, new_union_of_subtrees);
 
-        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > popcount(STSs[i].nd, G.m)) {
-            trie_add_element(&trie, STSs[i].nd, STSs[i].set, i);
+        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > popcount(nd, G.m)) {
+            trie_add_element(&trie, nd, s, i);
         }
     }
     free(filtered_STSs);
@@ -194,6 +196,7 @@ setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Grap
     struct hash_map STSs_as_set;
     hash_init(&STSs_as_set, bute);
     struct SetAndNeighbourhood *STSs_and_nds = malloc(STSs_len * sizeof *STSs_and_nds);
+    struct SetAndNeighbourhood **STSs_and_nds_pointers = malloc(STSs_len * sizeof *STSs_and_nds_pointers);
     for (int i=0; i<STSs_len; i++) {
         hash_add(&STSs_as_set, STSs[i], 1);
         setword *nd = get_bitset(bute);
@@ -203,15 +206,17 @@ setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Grap
 
     qsort(STSs_and_nds, STSs_len, sizeof *STSs_and_nds, cmp_nd_popcount_desc);
     for (int i=0; i<STSs_len; i++) {
-        STSs_and_nds[i].sorted_position = i;
+        STSs_and_nds_pointers[i] = &STSs_and_nds[i];
     }
 
     setword *empty_set = get_empty_bitset(bute);
     setword *full_set = get_empty_bitset(bute);
     set_first_k_bits(full_set, G.n);
 
-    make_STSs_helper(STSs_and_nds, STSs_len, &STSs_as_set,
+    printf("starting....\n");
+    make_STSs_helper(STSs_and_nds_pointers, STSs_len, &STSs_as_set,
             bute, G, full_set, empty_set, empty_set, root_depth, set_root, &new_STSs_hash_set);
+    printf("done. %ld\n", tmp_counter);
     free_bitset(bute, empty_set);
     free_bitset(bute, full_set);
 
@@ -219,6 +224,7 @@ setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Grap
         free_bitset(bute, STSs_and_nds[i].nd);
     }
     free(STSs_and_nds);
+    free(STSs_and_nds_pointers);
     setword **retval = hash_map_to_list(&new_STSs_hash_set);
     *new_STSs_len = new_STSs_hash_set.sz;
     hash_destroy(&new_STSs_hash_set);
