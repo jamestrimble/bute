@@ -11,6 +11,7 @@ struct Trie
     struct TrieNode *root;
     struct TrieNodePool *first_pool;
     int pool_len;
+    int pool_sz;
     int nodes_len;
     int graph_n;
     int m;

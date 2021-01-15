@@ -18,7 +18,9 @@ struct TrieNode
     setword bitsets[];
 };
 
-#define TRIE_POOL_SIZE 128
+#define TRIE_POOL_MIN_SIZE 1
+#define TRIE_POOL_MAX_SIZE 4192
+
 struct TrieNodePool
 {
     struct TrieNodePool *next;
@@ -27,11 +29,13 @@ struct TrieNodePool
 
 struct TrieNode *alloc_node(struct Trie *trie)
 {
-    if (trie->pool_len == TRIE_POOL_SIZE) {
-        struct TrieNodePool *new_pool = malloc(sizeof *new_pool + TRIE_POOL_SIZE * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
+    if (trie->pool_len == trie->pool_sz) {
+        trie->pool_len = 0;
+        if (trie->pool_sz < TRIE_POOL_MAX_SIZE)
+            trie->pool_sz *= 2;
+        struct TrieNodePool *new_pool = malloc(sizeof *new_pool + trie->pool_sz * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
         new_pool->next = trie->first_pool;
         trie->first_pool = new_pool;
-        trie->pool_len = 0;
     }
     struct TrieNodePool *pool = trie->first_pool;
     struct TrieNode *retval = (struct TrieNode *) (pool->data + trie->pool_len * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
@@ -57,7 +61,8 @@ void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
 void trie_init(struct Trie *trie, int n, int m, struct Bute *bute)
 {
     trie->first_pool = NULL;
-    trie->pool_len = TRIE_POOL_SIZE;
+    trie->pool_len = TRIE_POOL_MIN_SIZE;
+    trie->pool_sz = TRIE_POOL_MIN_SIZE;
     trie->graph_n = n;
     trie->m = m;
     trie->bute = bute;
