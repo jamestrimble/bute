@@ -167,7 +167,8 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
         if (!isempty(new_possible_STS_roots, G.m)) {
             qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
             make_STSs_helper(filtered_STSs, filtered_STSs_len, STSs_as_set,
-                    bute, G, new_possible_STS_roots, new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs_hash_set);
+                    bute, G, new_possible_STS_roots, new_union_of_subtrees,
+                    nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs_hash_set);
         }
 
         free_bitset(bute, new_union_of_subtrees_and_nd);
