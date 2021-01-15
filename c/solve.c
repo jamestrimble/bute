@@ -49,8 +49,7 @@ void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *unio
         setword *nd_of_union_of_subtrees, int root_depth, struct hash_map *set_root,
         struct hash_map *new_STSs_hash_set)
 {
-    setword *adj_vv = get_copy_of_bitset(bute, nd_of_union_of_subtrees);
-    bitset_addall(adj_vv, GRAPHROW(G.g, w, G.m), G.m);
+    setword *adj_vv = get_union_of_bitsets(bute, nd_of_union_of_subtrees, GRAPHROW(G.g, w, G.m));
     bitset_removeall(adj_vv, union_of_subtrees, G.m);
     DELELEMENT(adj_vv, w);
     if (popcount(adj_vv, G.m) < root_depth) {
@@ -78,8 +77,7 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
         bitset_addall(new_big_union, filtered_STSs[i]->set, G.m);
     }
     FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
-        setword *adj_vv = get_copy_of_bitset(bute, nd_of_new_union_of_subtrees);
-        bitset_addall(adj_vv, GRAPHROW(G.g,v,G.m), G.m);
+        setword *adj_vv = get_union_of_bitsets(bute, nd_of_new_union_of_subtrees, GRAPHROW(G.g,v,G.m));
         bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
         DELELEMENT(adj_vv, v);
         bitset_removeall(adj_vv, new_big_union, G.m);
@@ -118,15 +116,13 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
         int nd_popcount = popcount(nd, G.m);
         setword *new_possible_STS_roots = get_copy_of_bitset(bute, possible_STS_roots);
         bitset_intersect_with(new_possible_STS_roots, nd, G.m);
-        setword *new_union_of_subtrees = get_copy_of_bitset(bute, union_of_subtrees);
-        bitset_addall(new_union_of_subtrees, s, G.m);
+        setword *new_union_of_subtrees = get_union_of_bitsets(bute, union_of_subtrees, s);
 
-        setword *nd_of_new_union_of_subtrees = get_copy_of_bitset(bute, nd_of_union_of_subtrees);
-        bitset_addall(nd_of_new_union_of_subtrees, nd, G.m);
+        setword *nd_of_new_union_of_subtrees = get_union_of_bitsets(bute, nd_of_union_of_subtrees, nd);
         bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees, G.m);
 
-        setword *new_union_of_subtrees_and_nd = get_copy_of_bitset(bute, new_union_of_subtrees);
-        bitset_addall(new_union_of_subtrees_and_nd, nd_of_new_union_of_subtrees, G.m);
+        setword *new_union_of_subtrees_and_nd = get_union_of_bitsets(bute,
+                new_union_of_subtrees, nd_of_new_union_of_subtrees);
 
         struct SetAndNeighbourhood **candidates;
         int candidates_len = 0;

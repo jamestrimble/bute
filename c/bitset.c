@@ -151,6 +151,14 @@ setword *get_copy_of_bitset(struct Bute *bute, setword const *vv)
     return b;
 }
 
+setword *get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww)
+{
+    setword *b = get_bitset(bute);
+    for (int i=0; i<bute->m; i++)
+        b[i] = vv[i] | ww[i];
+    return b;
+}
+
 void free_Bitset(struct Bute *bute, struct Bitset *b)
 {
     b->next = bute->bitset_free_list_head;

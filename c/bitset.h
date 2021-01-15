@@ -78,6 +78,8 @@ setword *get_empty_bitset(struct Bute *bute);
 
 setword *get_copy_of_bitset(struct Bute *bute, setword const *vv);
 
+setword *get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww);
+
 void free_Bitset(struct Bute *bute, struct Bitset *b);
 
 void free_bitset(struct Bute *bute, setword *bitset);
