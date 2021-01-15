@@ -115,6 +115,7 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
     for (int i=STSs_len-1; i>=0; i--) {
         setword *s = STSs[i]->set;
         setword *nd = STSs[i]->nd;
+        int nd_popcount = popcount(nd, G.m);
         setword *new_possible_STS_roots = get_copy_of_bitset(bute, possible_STS_roots);
         bitset_intersect_with(new_possible_STS_roots, nd, G.m);
         setword *new_union_of_subtrees = get_copy_of_bitset(bute, union_of_subtrees);
@@ -132,9 +133,9 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
         if (STSs_len >= MIN_LEN_FOR_TRIE) {
             candidates = filtered_STSs;         // we'll filter in place afterwards
             int almost_subset_end_positions_len;
-            trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - popcount(nd, G.m),
+            trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - nd_popcount,
                     almost_subset_end_positions, &almost_subset_end_positions_len);
-            if (root_depth == popcount(nd, G.m)) {
+            if (root_depth == nd_popcount) {
                 int it = i + 1;
                 while (it < STSs_len && bitset_equals(nd, STSs[it]->nd, G.m)) {
                     candidates[candidates_len++] = STSs[it++];
@@ -178,7 +179,7 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
         free_bitset(bute, new_possible_STS_roots);
         free_bitset(bute, new_union_of_subtrees);
 
-        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > popcount(nd, G.m)) {
+        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > nd_popcount) {
             trie_add_element(&trie, nd, s, i);
         }
     }
