@@ -19,7 +19,7 @@ struct TrieNode
 };
 
 #define TRIE_POOL_MIN_SIZE 1
-#define TRIE_POOL_MAX_SIZE 4192
+#define TRIE_POOL_MAX_SIZE (1 << 16)
 
 struct TrieNodePool
 {
