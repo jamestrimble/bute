@@ -118,6 +118,9 @@ int popcount(setword const *vv, int m)
 
 struct Bitset *get_Bitset(struct Bute *bute)
 {
+#ifdef USE_MALLOC_FOR_BITSETS
+    return malloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
+#endif
     if (bute->bitset_free_list_head == NULL) {
         struct Bitset *b = malloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
         if (b == NULL)
@@ -168,6 +171,10 @@ setword *get_union_of_bitsets(struct Bute *bute, setword const *vv, setword cons
 
 void free_Bitset(struct Bute *bute, struct Bitset *b)
 {
+#ifdef USE_MALLOC_FOR_BITSETS
+    free(b);
+    return;
+#endif
     b->next = bute->bitset_free_list_head;
     bute->bitset_free_list_head = b;
 }
