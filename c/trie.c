@@ -1,6 +1,7 @@
 // This data structure is largely based on https://stackoverflow.com/a/6514445/3347737
 
 #include "trie.h"
+#include "util.h"
 
 #include <stdlib.h>
 
@@ -33,7 +34,7 @@ struct TrieNode *alloc_node(struct Trie *trie)
         trie->pool_len = 0;
         if (trie->pool_sz < TRIE_POOL_MAX_SIZE)
             trie->pool_sz *= 2;
-        struct TrieNodePool *new_pool = malloc(sizeof *new_pool + trie->pool_sz * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
+        struct TrieNodePool *new_pool = bute_xmalloc(sizeof *new_pool + trie->pool_sz * (sizeof(struct TrieNode) + 2*trie->m*sizeof(setword)));
         new_pool->next = trie->first_pool;
         trie->first_pool = new_pool;
     }

@@ -2,12 +2,13 @@
 #include <stdlib.h>
 
 #include "hash_map.h"
+#include "util.h"
 
 void hash_init(struct hash_map *s, struct Bute *bute)
 {
     s->M = 1;
     s->sz = 0;
-    s->chain_heads = calloc(s->M, sizeof *s->chain_heads);
+    s->chain_heads = bute_xcalloc(s->M, sizeof *s->chain_heads);
     s->m = bute->m;
     s->bute = bute;
 }
@@ -39,7 +40,7 @@ void hash_grow(struct hash_map *s)
     // grow the table
     int new_M = s->M * 2;
 
-    struct hash_chain_element **new_chain_heads = calloc(new_M, sizeof new_chain_heads);
+    struct hash_chain_element **new_chain_heads = bute_xcalloc(new_M, sizeof new_chain_heads);
     // move the chain elements to the new chains
     for (int i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];
@@ -62,7 +63,7 @@ void hash_add(struct hash_map *s, setword * key, int val)
 //    printf("adding\n");
 //    printf("HASH %d\n", (int)hash(key));
     unsigned h = hash(key, s->m) % s->M;
-    struct hash_chain_element *elem = malloc(sizeof *elem + s->m * sizeof(setword));
+    struct hash_chain_element *elem = bute_xmalloc(sizeof *elem + s->m * sizeof(setword));
     for (int k=0; k<s->m; k++)
         elem->key[k] = key[k];
     elem->val = val;
@@ -97,7 +98,7 @@ bool hash_iselement(struct hash_map *s, setword *key)
 
 setword ** hash_map_to_list(struct hash_map *s)
 {
-    setword **retval = malloc(s->sz * sizeof *retval);
+    setword **retval = bute_xmalloc(s->sz * sizeof *retval);
     int j = 0;
     for (int i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];

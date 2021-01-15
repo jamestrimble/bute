@@ -3,6 +3,7 @@
 #include "graph.h"
 #include "hash_map.h"
 #include "trie.h"
+#include "util.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -106,9 +107,9 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
     struct Trie trie;
     if (STSs_len >= MIN_LEN_FOR_TRIE)
         trie_init(&trie, G.n, G.m, bute);
-    int *almost_subset_end_positions = malloc(STSs_len * sizeof *almost_subset_end_positions);
+    int *almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
 
-    struct SetAndNeighbourhood **filtered_STSs = malloc(STSs_len * sizeof *filtered_STSs);
+    struct SetAndNeighbourhood **filtered_STSs = bute_xmalloc(STSs_len * sizeof *filtered_STSs);
 
     for (int i=STSs_len-1; i>=0; i--) {
         setword *s = STSs[i]->set;
@@ -193,8 +194,8 @@ setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Grap
     hash_init(&new_STSs_hash_set, bute);
     struct hash_map STSs_as_set;
     hash_init(&STSs_as_set, bute);
-    struct SetAndNeighbourhood *STSs_and_nds = malloc(STSs_len * sizeof *STSs_and_nds);
-    struct SetAndNeighbourhood **STSs_and_nds_pointers = malloc(STSs_len * sizeof *STSs_and_nds_pointers);
+    struct SetAndNeighbourhood *STSs_and_nds = bute_xmalloc(STSs_len * sizeof *STSs_and_nds);
+    struct SetAndNeighbourhood **STSs_and_nds_pointers = bute_xmalloc(STSs_len * sizeof *STSs_and_nds_pointers);
     for (int i=0; i<STSs_len; i++) {
         hash_add(&STSs_as_set, STSs[i], 1);
         setword *nd = get_bitset(bute);
@@ -328,7 +329,7 @@ int main(int argc, char *argv[])
     struct Graph G = read_graph();
     struct Bute bute;
     Bute_init(&bute, G);
-    int *parent = calloc(G.n, sizeof *parent);
+    int *parent = bute_xcalloc(G.n, sizeof *parent);
     int treedepth = optimise(G, parent, &bute);
 
     printf("%d\n", treedepth);

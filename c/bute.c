@@ -1,15 +1,16 @@
 #include "bute.h"
 #include "bitset.h"
 #include "graph.h"
+#include "util.h"
 
 void Bute_init(struct Bute *bute, struct Graph G)
 {
     bute->m = G.m;
     bute->bitset_free_list_head = NULL;
     bute->n = G.n;
-    bute->adj_vv_dominated_by = malloc(G.n * sizeof *bute->adj_vv_dominated_by);
-    bute->vv_dominated_by = malloc(G.n * sizeof *bute->vv_dominated_by);
-    bute->vv_that_dominate = malloc(G.n * sizeof *bute->vv_that_dominate);
+    bute->adj_vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->adj_vv_dominated_by);
+    bute->vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->vv_dominated_by);
+    bute->vv_that_dominate = bute_xmalloc(G.n * sizeof *bute->vv_that_dominate);
     for (int v=0; v<G.n; v++) {
         bute->adj_vv_dominated_by[v] = get_empty_bitset(bute);
         bute->vv_dominated_by[v] = get_empty_bitset(bute);

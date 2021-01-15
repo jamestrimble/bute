@@ -1,5 +1,6 @@
 #include "bitset.h"
 #include "bute.h"
+#include "util.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -119,10 +120,10 @@ int popcount(setword const *vv, int m)
 struct Bitset *get_Bitset(struct Bute *bute)
 {
 #ifdef USE_MALLOC_FOR_BITSETS
-    return malloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
+    return bute_xmalloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
 #endif
     if (bute->bitset_free_list_head == NULL) {
-        struct Bitset *b = malloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
+        struct Bitset *b = bute_xmalloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
         if (b == NULL)
             exit(1);
         b->next = NULL;

@@ -1,5 +1,6 @@
 #include "bitset.h"
 #include "graph.h"
+#include "util.h"
 
 #include <stdio.h>
 
@@ -36,7 +37,7 @@ struct Graph read_graph()
             if(sscanf(s, "%s %s %d %d", s1, s2, &n, &edge_count) != 4)
                 exit(1);
             m = SETWORDSNEEDED(n);
-            g = calloc(n * m, sizeof(graph));
+            g = bute_xcalloc(n * m, sizeof(graph));
             break;
         default:
             if (sscanf(s, "%d %d", &v, &w) != 2)
@@ -55,7 +56,7 @@ struct Graph read_graph()
 struct Graph create_empty_graph(int n)
 {
     int m = SETWORDSNEEDED(n);
-    graph *g = calloc(n * m, sizeof(graph));
+    graph *g = bute_xcalloc(n * m, sizeof(graph));
     return (struct Graph) {g, n, m};
 }
 
@@ -64,7 +65,7 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G, struct But
     struct Bitset *retval = NULL;
     setword *visited = get_empty_bitset(bute);
     setword *vv_in_prev_components = get_empty_bitset(bute);
-    int *queue = malloc(G.n * sizeof *queue);
+    int *queue = bute_xmalloc(G.n * sizeof *queue);
     FOR_EACH_IN_BITSET(v, vv, G.m)
         if (ISELEMENT(visited, v))
             continue;
