@@ -15,7 +15,6 @@ struct Trie
     int nodes_len;
     int graph_n;
     int m;
-    int node_size;
     struct Bute *bute;
 };
 
