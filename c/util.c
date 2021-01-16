@@ -23,3 +23,11 @@ void *bute_xcalloc(size_t nmemb, size_t size)
         bute_fail();
     return result;
 }
+
+void *bute_xrealloc(void *ptr, size_t size)
+{
+    void *result = realloc(ptr, size);
+    if (!result)
+        bute_fail();
+    return result;
+}
