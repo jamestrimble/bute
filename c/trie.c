@@ -37,6 +37,7 @@ void trie_init(struct Trie *trie, int n, int m, struct Bute *bute)
 {
     trie->graph_n = n;
     trie->m = m;
+    trie->node_size = sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword);
     trie->bute = bute;
     setword * full_bitset = get_full_bitset(bute, trie->graph_n);
     trie->root = bute_xmalloc(sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword));
@@ -48,7 +49,7 @@ void trie_node_destroy(struct Trie *trie, struct TrieNode *node)
 {
     for (int i=0; i<node->children_len; i++) {
         struct TrieNode *child =
-                (struct TrieNode *) (node->children + i * (sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword)));
+                (struct TrieNode *) (node->children + i * trie->node_size);
         trie_node_destroy(trie, child);
     }
     free(node->children);
@@ -62,12 +63,13 @@ void trie_destroy(struct Trie *trie)
 
 struct TrieNode *trie_get_child_node(struct Trie *trie, struct TrieNode *node, int key)
 {
+    unsigned char *p = node->children;
     for (int i=0; i<node->children_len; i++) {
-        struct TrieNode *child =
-                (struct TrieNode *) (node->children + i * (sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword)));
+        struct TrieNode *child = (struct TrieNode *) p;
         if (child->key == key) {
             return child;
         }
+        p += trie->node_size;
     }
     return NULL;
 }
@@ -84,14 +86,15 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
     if (node->val != -1) {
         arr_out[(*arr_out_len)++] = node->val;
     }
+    unsigned char *p = node->children;
     for (int i=0; i<node->children_len; i++) {
-        struct TrieNode *child =
-                (struct TrieNode *) (node->children + i * (sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword)));
+        struct TrieNode *child = (struct TrieNode *) p;
         int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child->key);
         if (new_remaining_num_additions_permitted >= 0) {
             trie_get_all_almost_subsets_helper(trie, child, set, aux_set, num_additions_permitted,
                     new_remaining_num_additions_permitted, arr_out, arr_out_len);
         }
+        p += trie->node_size;
     }
 }
 
@@ -114,10 +117,8 @@ void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitse
             bitset_intersect_with(SUBTREE_INTERSECTION_OF_AUX_BITSETS(trie, node), aux_bitset, trie->m);
         } else {
             ++node->children_len;
-            node->children = bute_xrealloc(node->children,
-                    node->children_len * (sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword)));
-            struct TrieNode *new_node = (struct TrieNode *) (node->children + (node->children_len - 1) *
-                    (sizeof(struct TrieNode) + 2 * trie->m * sizeof(setword)));
+            node->children = bute_xrealloc(node->children, node->children_len * trie->node_size);
+            struct TrieNode *new_node = (struct TrieNode *) (node->children + (node->children_len - 1) * trie->node_size);
             trie_node_init(trie, new_node, v, key_bitset, aux_bitset);
             node = new_node;
         }
