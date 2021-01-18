@@ -19,6 +19,31 @@ struct SetAndNeighbourhood
     int m;
 };
 
+struct SetAndNeighbourhoodVec
+{
+    struct SetAndNeighbourhood *vals;
+    int capacity;
+    int len;
+};
+
+void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetAndNeighbourhood val)
+{
+    if (vec->len == vec->capacity) {
+        vec->capacity = vec->capacity == 0 ? 1 : vec->capacity * 2;
+        vec->vals = bute_xrealloc(vec->vals, vec->capacity * sizeof *vec->vals);
+    }
+    vec->vals[vec->len++] = val;
+}
+
+void SetAndNeighbourhoodVec_destroy(struct Bute *bute, struct SetAndNeighbourhoodVec *vec)
+{
+    for (int i=0; i<vec->len; i++) {
+        free_bitset(bute, vec->vals[i].set);
+        free_bitset(bute, vec->vals[i].nd);
+    }
+    free(vec->vals);
+}
+
 int cmp_nd_popcount_desc(const void *a, const void *b) {
     const struct SetAndNeighbourhood sa = *(const struct SetAndNeighbourhood *) a;
     const struct SetAndNeighbourhood sb = *(const struct SetAndNeighbourhood *) b;
@@ -48,7 +73,7 @@ int cmp_sorted_position(const void *a, const void *b) {
 
 void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *union_of_subtrees,
         setword *nd_of_union_of_subtrees, int root_depth, struct hash_map *set_root,
-        struct hash_map *new_STSs_hash_set)
+        struct SetAndNeighbourhoodVec *new_STSs, struct hash_map *new_STSs_hash_set)
 {
     setword *adj_vv = get_union_of_bitsets(bute, nd_of_union_of_subtrees, GRAPHROW(G.g, w, G.m));
     bitset_removeall(adj_vv, union_of_subtrees, G.m);
@@ -59,6 +84,8 @@ void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *unio
         if (intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
                 intersection_is_empty(bute->vv_that_dominate[w], STS, G.m) &&
                 !hash_iselement(new_STSs_hash_set, STS)) {
+            SetAndNeighbourhoodVec_push(new_STSs, (struct SetAndNeighbourhood)
+                    {get_copy_of_bitset(bute, STS), get_copy_of_bitset(bute, adj_vv), G.m});
             hash_add(new_STSs_hash_set, STS, 1);
             if (!hash_iselement(set_root, STS)) {
                 hash_add(set_root, STS, w);
@@ -94,14 +121,14 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 50
 
-void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct hash_map *STSs_as_set,
+void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
-        int root_depth, struct hash_map *set_root, struct hash_map *new_STSs_hash_set)
+        int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs, struct hash_map *new_STSs_hash_set)
 {
     ++tmp_counter;
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
         try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
-                set_root, new_STSs_hash_set);
+                set_root, new_STSs, new_STSs_hash_set);
     END_FOR_EACH_IN_BITSET
 
     struct Trie trie;
@@ -167,9 +194,10 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
 
         if (!isempty(new_possible_STS_roots, G.m)) {
             qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
-            make_STSs_helper(filtered_STSs, filtered_STSs_len, STSs_as_set,
-                    bute, G, new_possible_STS_roots, new_union_of_subtrees,
-                    nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs_hash_set);
+            make_STSs_helper(filtered_STSs, filtered_STSs_len, bute, G,
+                    new_possible_STS_roots, new_union_of_subtrees,
+                    nd_of_new_union_of_subtrees, root_depth, set_root,
+                    new_STSs, new_STSs_hash_set);
         }
 
         free_bitset(bute, new_union_of_subtrees_and_nd);
@@ -187,45 +215,31 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len, struct ha
     free(almost_subset_end_positions);
 }
 
-setword **make_STSs(setword **STSs, int STSs_len, struct Bute *bute, struct Graph G,
-        int root_depth, struct hash_map *set_root, int *new_STSs_len)
+struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct Graph G,
+        int root_depth, struct hash_map *set_root)
 {
+    struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
+
     struct hash_map new_STSs_hash_set;
     hash_init(&new_STSs_hash_set, bute);
-    struct hash_map STSs_as_set;
-    hash_init(&STSs_as_set, bute);
-    struct SetAndNeighbourhood *STSs_and_nds = bute_xmalloc(STSs_len * sizeof *STSs_and_nds);
-    struct SetAndNeighbourhood **STSs_and_nds_pointers = bute_xmalloc(STSs_len * sizeof *STSs_and_nds_pointers);
-    for (int i=0; i<STSs_len; i++) {
-        hash_add(&STSs_as_set, STSs[i], 1);
-        setword *nd = get_bitset(bute);
-        find_adjacent_vv(STSs[i], G, nd);
-        STSs_and_nds[i] = (struct SetAndNeighbourhood) {STSs[i], nd, G.m};
-    }
 
-    qsort(STSs_and_nds, STSs_len, sizeof *STSs_and_nds, cmp_nd_popcount_desc);
-    for (int i=0; i<STSs_len; i++) {
-        STSs_and_nds_pointers[i] = &STSs_and_nds[i];
+    struct SetAndNeighbourhood **STSs_pointers = bute_xmalloc(STSs->len * sizeof *STSs_pointers);
+    for (int i=0; i<STSs->len; i++) {
+        STSs_pointers[i] = &STSs->vals[i];
     }
 
     setword *empty_set = get_empty_bitset(bute);
     setword *full_set = get_full_bitset(bute, G.n);
 
-    make_STSs_helper(STSs_and_nds_pointers, STSs_len, &STSs_as_set,
-            bute, G, full_set, empty_set, empty_set, root_depth, set_root, &new_STSs_hash_set);
+    make_STSs_helper(STSs_pointers, STSs->len, bute, G, full_set, empty_set,
+            empty_set, root_depth, set_root, &new_STSs, &new_STSs_hash_set);
     free_bitset(bute, empty_set);
     free_bitset(bute, full_set);
 
-    for (int i=0; i<STSs_len; i++) {
-        free_bitset(bute, STSs_and_nds[i].nd);
-    }
-    free(STSs_and_nds);
-    free(STSs_and_nds_pointers);
-    setword **retval = hash_map_to_list(&new_STSs_hash_set);
-    *new_STSs_len = new_STSs_hash_set.sz;
+    free(STSs_pointers);
     hash_destroy(&new_STSs_hash_set);
-    hash_destroy(&STSs_as_set);
-    return retval;
+    qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
+    return new_STSs;
 }
 
 void add_parents(struct Bute *bute, int *parent, struct Graph G, struct hash_map *set_root, setword *s, int parent_vertex)
@@ -249,50 +263,42 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
     struct hash_map set_root;
     hash_init(&set_root, bute);
 
-    setword **STSs = NULL;
-    int STSs_len = 0;
+    struct SetAndNeighbourhoodVec STSs = {NULL, 0, 0};
 
     for (int root_depth=target; root_depth>=1; root_depth--) {
         int prev_set_root_size = set_root.sz;
 //        printf("target %d  root depth %d\n", target, root_depth);
 //        printf(" %d\n", STSs_len);
-        int new_STSs_len = 0;
-        setword **new_STSs = make_STSs(STSs, STSs_len, bute, G, root_depth, &set_root, &new_STSs_len);
-        for (int i=0; i<STSs_len; i++) {
-            free_bitset(bute, STSs[i]);
-        }
-        free(STSs);
+
+        struct SetAndNeighbourhoodVec new_STSs = make_STSs(&STSs, bute, G, root_depth, &set_root);
+        SetAndNeighbourhoodVec_destroy(bute, &STSs);
         STSs = new_STSs;
-        STSs_len = new_STSs_len;
         if (set_root.sz == prev_set_root_size) {
             break;
         }
 
         if (root_depth == 1) {
             int total_size = 0;
-            for (int i=0; i<STSs_len; i++) {
-                total_size += popcount(STSs[i], G.m);
+            for (int i=0; i<STSs.len; i++) {
+                total_size += popcount(STSs.vals[i].set, G.m);
             }
             if (total_size == G.n) {
                 retval = true;
-                for (int i=0; i<STSs_len; i++) {
-                    add_parents(bute, parent, G, &set_root, STSs[i], -1);
+                for (int i=0; i<STSs.len; i++) {
+                    add_parents(bute, parent, G, &set_root, STSs.vals[i].set, -1);
                 }
             }
         } else {
-            for (int i=0; i<STSs_len; i++) {
-                setword *adj_vv = get_bitset(bute);
-                find_adjacent_vv(STSs[i], G, adj_vv);
-                if (!retval && popcount(STSs[i], G.m) + popcount(adj_vv, G.m) == G.n) {
+            for (int i=0; i<STSs.len; i++) {
+                if (!retval && popcount(STSs.vals[i].set, G.m) + popcount(STSs.vals[i].nd, G.m) == G.n) {
                     retval = true;
                     int parent_vertex = -1;
-                    FOR_EACH_IN_BITSET(w, adj_vv, G.m)
+                    FOR_EACH_IN_BITSET(w, STSs.vals[i].nd, G.m)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
-                    add_parents(bute, parent, G, &set_root, STSs[i], parent_vertex);
+                    add_parents(bute, parent, G, &set_root, STSs.vals[i].set, parent_vertex);
                 }
-                free_bitset(bute, adj_vv);
                 if (retval) {
                     break;
                 }
@@ -303,10 +309,7 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
         }
     }
     
-    for (int i=0; i<STSs_len; i++) {
-        free_bitset(bute, STSs[i]);
-    }
-    free(STSs);
+    SetAndNeighbourhoodVec_destroy(bute, &STSs);
     hash_destroy(&set_root);
     return retval;
 }
