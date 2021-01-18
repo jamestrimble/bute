@@ -73,7 +73,7 @@ int cmp_sorted_position(const void *a, const void *b) {
 
 void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *union_of_subtrees,
         setword *nd_of_union_of_subtrees, int root_depth, struct hash_map *set_root,
-        struct SetAndNeighbourhoodVec *new_STSs, struct hash_map *new_STSs_hash_set)
+        struct SetAndNeighbourhoodVec *new_STSs)
 {
     setword *adj_vv = get_union_of_bitsets(bute, nd_of_union_of_subtrees, GRAPHROW(G.g, w, G.m));
     bitset_removeall(adj_vv, union_of_subtrees, G.m);
@@ -82,13 +82,10 @@ void try_adding_STS_root(struct Bute *bute, struct Graph G, int w, setword *unio
         setword *STS = get_copy_of_bitset(bute, union_of_subtrees);
         ADDELEMENT(STS, w);
         if (intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
-                intersection_is_empty(bute->vv_that_dominate[w], STS, G.m) &&
-                !hash_iselement(new_STSs_hash_set, STS)) {
-            SetAndNeighbourhoodVec_push(new_STSs, (struct SetAndNeighbourhood)
-                    {get_copy_of_bitset(bute, STS), get_copy_of_bitset(bute, adj_vv), G.m});
-            hash_add(new_STSs_hash_set, STS, 1);
-            if (!hash_iselement(set_root, STS)) {
-                hash_add(set_root, STS, w);
+                intersection_is_empty(bute->vv_that_dominate[w], STS, G.m)) {
+            if (hash_add_or_update(set_root, STS, w, root_depth)) {
+                SetAndNeighbourhoodVec_push(new_STSs, (struct SetAndNeighbourhood)
+                        {get_copy_of_bitset(bute, STS), get_copy_of_bitset(bute, adj_vv), G.m});
             }
         }
         free_bitset(bute, STS);
@@ -123,12 +120,12 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
 
 void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
-        int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs, struct hash_map *new_STSs_hash_set)
+        int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
     ++tmp_counter;
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
         try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
-                set_root, new_STSs, new_STSs_hash_set);
+                set_root, new_STSs);
     END_FOR_EACH_IN_BITSET
 
     struct Trie trie;
@@ -196,8 +193,7 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
             qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
             make_STSs_helper(filtered_STSs, filtered_STSs_len, bute, G,
                     new_possible_STS_roots, new_union_of_subtrees,
-                    nd_of_new_union_of_subtrees, root_depth, set_root,
-                    new_STSs, new_STSs_hash_set);
+                    nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs);
         }
 
         free_bitset(bute, new_union_of_subtrees_and_nd);
@@ -220,9 +216,6 @@ struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, str
 {
     struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
 
-    struct hash_map new_STSs_hash_set;
-    hash_init(&new_STSs_hash_set, bute);
-
     struct SetAndNeighbourhood **STSs_pointers = bute_xmalloc(STSs->len * sizeof *STSs_pointers);
     for (int i=0; i<STSs->len; i++) {
         STSs_pointers[i] = &STSs->vals[i];
@@ -232,12 +225,11 @@ struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, str
     setword *full_set = get_full_bitset(bute, G.n);
 
     make_STSs_helper(STSs_pointers, STSs->len, bute, G, full_set, empty_set,
-            empty_set, root_depth, set_root, &new_STSs, &new_STSs_hash_set);
+            empty_set, root_depth, set_root, &new_STSs);
     free_bitset(bute, empty_set);
     free_bitset(bute, full_set);
 
     free(STSs_pointers);
-    hash_destroy(&new_STSs_hash_set);
     qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
     return new_STSs;
 }

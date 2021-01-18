@@ -57,43 +57,53 @@ void hash_grow(struct hash_map *s)
     s->M = new_M;
 }
 
-// Assumption: key is not in s already
-void hash_add(struct hash_map *s, setword * key, int val)
+struct hash_chain_element *get_chain_element(struct hash_map *s, setword *key, unsigned h)
 {
-//    printf("adding\n");
-//    printf("HASH %d\n", (int)hash(key));
-    unsigned h = hash(key, s->m) % s->M;
-    struct hash_chain_element *elem = bute_xmalloc(sizeof *elem + s->m * sizeof(setword));
-    for (int k=0; k<s->m; k++)
-        elem->key[k] = key[k];
-    elem->val = val;
-    elem->next = s->chain_heads[h];
-    s->chain_heads[h] = elem;
-    ++s->sz;
-    
-    if (s->sz > (s->M + 1) / 2) {
-        hash_grow(s);
+    struct hash_chain_element *p = s->chain_heads[h];
+    while (p) {
+        if (bitset_equals(p->key, key, s->m)) {
+            return p;
+        }
+        p = p->next;
     }
+    return NULL;
+}
+
+// add key-val pair if key is not in the hash map.
+// If key is already in the map, leave value unchanged but update root depth.
+// Return true if key is added or root depth is updated.
+bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_depth)
+{
+    unsigned h = hash(key, s->m) % s->M;
+    struct hash_chain_element *elem = get_chain_element(s, key, h);
+    if (elem == NULL) {
+        struct hash_chain_element *elem = bute_xmalloc(sizeof *elem + s->m * sizeof(setword));
+        for (int k=0; k<s->m; k++)
+            elem->key[k] = key[k];
+        elem->val = val;
+        elem->root_depth = root_depth;
+        elem->next = s->chain_heads[h];
+        s->chain_heads[h] = elem;
+        ++s->sz;
+        if (s->sz > (s->M + 1) / 2) {
+            hash_grow(s);
+        }
+        return true;
+    } else if (elem->root_depth != root_depth) {
+        elem->root_depth = root_depth;
+        return true;
+    }
+    return false;
 }
 
 bool hash_get_val(struct hash_map *s, setword *key, int *val)
 {
     unsigned h = hash(key, s->m) % s->M;
-    struct hash_chain_element *p = s->chain_heads[h];
-    while (p) {
-        if (bitset_equals(p->key, key, s->m)) {
-            *val = p->val;
-            return true;
-        }
-        p = p->next;
+    struct hash_chain_element *chain_elem = get_chain_element(s, key, h);
+    if (chain_elem) {
+        *val = chain_elem->val;
     }
     return false;
-}
-
-bool hash_iselement(struct hash_map *s, setword *key)
-{
-    int junk;
-    return hash_get_val(s, key, &junk);
 }
 
 setword ** hash_map_to_list(struct hash_map *s)

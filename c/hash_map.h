@@ -7,6 +7,7 @@
 struct hash_chain_element
 {
     int val;
+    int root_depth;
     struct hash_chain_element *next;
     setword key[];
 };
@@ -24,9 +25,7 @@ void hash_init(struct hash_map *s, struct Bute *bute);
 
 void hash_destroy(struct hash_map *s);
 
-bool hash_iselement(struct hash_map *s, setword *key);
-
-void hash_add(struct hash_map *s, setword * key, int val);
+bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_depth);
 
 setword ** hash_map_to_list(struct hash_map *s);
 
