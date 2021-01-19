@@ -136,5 +136,3 @@ void hash_destroy(struct hash_map *s)
     }
     free(s->chain_heads);
 }
-
-
