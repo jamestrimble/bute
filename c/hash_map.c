@@ -40,7 +40,7 @@ void hash_grow(struct hash_map *s)
     // grow the table
     int new_M = s->M * 2;
 
-    struct hash_chain_element **new_chain_heads = bute_xcalloc(new_M, sizeof new_chain_heads);
+    struct hash_chain_element **new_chain_heads = bute_xcalloc(new_M, sizeof *new_chain_heads);
     // move the chain elements to the new chains
     for (int i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];
