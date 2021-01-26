@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "bute_solver.h"
+#include "bute.h"
 
 #define BUFFERSIZE 1024
 

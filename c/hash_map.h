@@ -2,7 +2,7 @@
 #define HASH_MAP_H
 
 #include "bitset.h"
-#include "bute.h"
+#include "bute_solver.h"
 
 struct hash_chain_element
 {

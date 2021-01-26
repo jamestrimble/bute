@@ -1,5 +1,5 @@
 #include "bitset.h"
-#include "bute.h"
+#include "bute_solver.h"
 #include "util.h"
 
 #include <stdbool.h>

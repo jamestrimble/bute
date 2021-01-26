@@ -1,13 +1,21 @@
 #ifndef BUTE_SOLVER_H
 #define BUTE_SOLVER_H
 
+#include "bitset.h"
+
+struct Bute {
+    int m;   // number of setwords needed for each bitset
+    struct Bitset *bitset_free_list_head;
+    setword **vv_dominated_by;
+    setword **vv_that_dominate;
+    setword **adj_vv_dominated_by;
+    int n;  // number of vertices
+};
+
 struct Graph;
 
-struct Graph *new_graph(int n);
-void graph_add_edge(struct Graph *G, int v, int w);
-int graph_node_count(struct Graph *G);
-void free_graph(struct Graph *G);
+void Bute_init(struct Bute *bute, struct Graph G);
 
-int bute_optimise(struct Graph *G, int *parent);
+void Bute_destroy(struct Bute *bute);
 
 #endif
