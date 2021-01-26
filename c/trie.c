@@ -12,7 +12,7 @@
 
 struct TrieNode
 {
-    int children_len;
+    unsigned children_len;
     struct TrieNode *children;
 
     int key;
@@ -107,6 +107,17 @@ void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_s
     trie_get_all_almost_subsets_helper(trie, trie->root, set, aux_set, num_additions_permitted, num_additions_permitted, arr_out, arr_out_len);
 }
 
+struct TrieNode *trie_node_add_child(struct TrieNode *node)
+{
+    if (node->children_len == 0) {
+        node->children = bute_xmalloc(sizeof(struct TrieNode));
+    } else if (__builtin_popcount(node->children_len) == 1) {
+        node->children = bute_xrealloc(node->children, node->children_len * 2 * sizeof(struct TrieNode));
+    }
+    ++node->children_len;
+    return &node->children[node->children_len - 1];
+}
+
 void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitset, int val)
 {
     struct TrieNode *node = trie->root;
@@ -119,9 +130,7 @@ void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitse
             bitset_intersect_with(SUBTREE_INTERSECTION(node), key_bitset, trie->m);
             bitset_intersect_with(SUBTREE_INTERSECTION_OF_AUX_BITSETS(node), aux_bitset, trie->m);
         } else {
-            ++node->children_len;
-            node->children = bute_xrealloc(node->children, node->children_len * sizeof(struct TrieNode));
-            struct TrieNode *new_node = &node->children[node->children_len - 1];
+            struct TrieNode *new_node = trie_node_add_child(node);
             trie_node_init(trie, new_node, v, key_bitset, aux_bitset);
             node = new_node;
         }
