@@ -1,3 +1,4 @@
+#include "bute_solver.h"
 #include "bitset.h"
 #include "bute.h"
 #include "graph.h"
@@ -8,9 +9,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <stdio.h>
-
-long tmp_counter = 0;
 
 struct SetAndNeighbourhood
 {
@@ -122,7 +120,6 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
         int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
-    ++tmp_counter;
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
         try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
                 set_root, new_STSs);
@@ -319,21 +316,34 @@ int optimise(struct Graph G, int *parent, struct Bute *bute)
     return target;
 }
 
-int main(int argc, char *argv[])
+struct Graph *new_graph(int n)
 {
-    struct Graph G = read_graph();
+    struct Graph *G = bute_xmalloc(sizeof *G);
+    *G = create_empty_graph(n);
+    return G;
+}
+
+void graph_add_edge(struct Graph *G, int v, int w)
+{
+    ADDONEEDGE(G->g, v, w, G->m);
+}
+
+int graph_node_count(struct Graph *G)
+{
+    return G->n;
+}
+
+void free_graph(struct Graph *G)
+{
+    free(G->g);
+    free(G);
+}
+
+int bute_optimise(struct Graph *G, int *parent)
+{
     struct Bute bute;
-    Bute_init(&bute, G);
-    int *parent = bute_xcalloc(G.n, sizeof *parent);
-    int treedepth = optimise(G, parent, &bute);
-
-    printf("%d\n", treedepth);
-    for (int i=0; i<G.n; i++) {
-        printf("%d\n", parent[i] + 1);
-    }
-//    printf("tmp counter %ld\n", tmp_counter);
-
-    free(parent);
-    free(G.g);
+    Bute_init(&bute, *G);
+    int treedepth = optimise(*G, parent, &bute);
     Bute_destroy(&bute);
+    return treedepth;
 }
