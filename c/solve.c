@@ -116,7 +116,7 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
 
 // if filtered_STSs_len is small, use a simple filtering algorithm to
 // avoid the overhead of the trie
-#define MIN_LEN_FOR_TRIE 50
+#define MIN_LEN_FOR_TRIE 1000
 
 void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,

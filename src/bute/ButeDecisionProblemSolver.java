@@ -14,7 +14,7 @@ class ButeDecisionProblemSolver {
     final ButeOptions options;
     final HashMap<FastBitSet, Integer> setRoot = new HashMap<>();
     FastBitSet[] neighbourSets;
-    static final int MIN_LEN_FOR_TRIE = 50;
+    static final int MIN_LEN_FOR_TRIE = 1000;
 
     ButeDecisionProblemSolver(Graph g, Dom dom, int target, ButeOptions options) {
         this.g = g;
