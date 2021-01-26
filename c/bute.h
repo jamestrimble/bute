@@ -1,6 +1,10 @@
 #ifndef BUTE_H
 #define BUTE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct Graph;
 
 struct Graph *new_graph(int n);
@@ -9,5 +13,9 @@ int graph_node_count(struct Graph *G);
 void free_graph(struct Graph *G);
 
 int bute_optimise(struct Graph *G, int *parent);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
