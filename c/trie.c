@@ -33,7 +33,7 @@ void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
     node->children = NULL;
     node->children_len = 0;
     if (trie->m > SMALL_SET_SIZE) {
-        node->bitsets = malloc(trie->m * 2 * sizeof(setword));
+        node->bitsets = bute_xmalloc(trie->m * 2 * sizeof(setword));
     }
     for (int i=0; i<trie->m; i++) {
         SUBTREE_INTERSECTION(node)[i] = initial_subtrie_intersection[i];
