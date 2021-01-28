@@ -20,6 +20,6 @@ void trie_destroy(struct Trie *trie);
 
 void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitset, int val);
 
-void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_set, int num_additions_permitted, int *arr_out, int *arr_out_len);
+void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_set, int num_additions_permitted, size_t *arr_out, size_t *arr_out_len);
 
 #endif

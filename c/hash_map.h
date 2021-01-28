@@ -14,8 +14,8 @@ struct hash_chain_element
 
 struct hash_map
 {
-    int M;
-    int sz;
+    size_t M;
+    size_t sz;
     struct hash_chain_element **chain_heads;
     int m;
     struct Bute *bute;

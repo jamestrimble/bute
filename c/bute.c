@@ -20,8 +20,8 @@ struct SetAndNeighbourhood
 struct SetAndNeighbourhoodVec
 {
     struct SetAndNeighbourhood *vals;
-    int capacity;
-    int len;
+    size_t capacity;
+    size_t len;
 };
 
 void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetAndNeighbourhood val)
@@ -35,7 +35,7 @@ void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetA
 
 void SetAndNeighbourhoodVec_destroy(struct Bute *bute, struct SetAndNeighbourhoodVec *vec)
 {
-    for (int i=0; i<vec->len; i++) {
+    for (size_t i=0; i<vec->len; i++) {
         free_bitset(bute, vec->vals[i].set);
         free_bitset(bute, vec->vals[i].nd);
     }
@@ -96,7 +96,7 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
         setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth)
 {
     setword *new_big_union = get_empty_bitset(bute);
-    for (int i=0; i<filtered_STSs_len; i++) {
+    for (size_t i=0; i<filtered_STSs_len; i++) {
         bitset_addall(new_big_union, filtered_STSs[i]->set, G.m);
     }
     FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
@@ -116,7 +116,7 @@ void filter_roots(struct Bute *bute, struct Graph G, setword *new_possible_STS_r
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 1000
 
-void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
+void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
         int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
@@ -128,11 +128,11 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
     struct Trie trie;
     if (STSs_len >= MIN_LEN_FOR_TRIE)
         trie_init(&trie, G.n, G.m, bute);
-    int *almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
+    size_t *almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
 
     struct SetAndNeighbourhood **filtered_STSs = bute_xmalloc(STSs_len * sizeof *filtered_STSs);
 
-    for (int i=STSs_len-1; i>=0; i--) {
+    for (size_t i=STSs_len; i--; ) {
         setword *s = STSs[i]->set;
         setword *nd = STSs[i]->nd;
         int nd_popcount = popcount(nd, G.m);
@@ -147,20 +147,20 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
                 new_union_of_subtrees, nd_of_new_union_of_subtrees);
 
         struct SetAndNeighbourhood **candidates;
-        int candidates_len = 0;
+        size_t candidates_len = 0;
         if (STSs_len >= MIN_LEN_FOR_TRIE) {
             candidates = filtered_STSs;         // we'll filter in place afterwards
-            int almost_subset_end_positions_len;
+            size_t almost_subset_end_positions_len;
             trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - nd_popcount,
                     almost_subset_end_positions, &almost_subset_end_positions_len);
             if (root_depth == nd_popcount) {
-                int it = i + 1;
+                size_t it = i + 1;
                 while (it < STSs_len && bitset_equals(nd, STSs[it]->nd, G.m)) {
                     candidates[candidates_len++] = STSs[it++];
                 }
             }
-            for (int j=0; j<almost_subset_end_positions_len; j++) {
-                int iter = almost_subset_end_positions[j];
+            for (size_t j=0; j<almost_subset_end_positions_len; j++) {
+                size_t iter = almost_subset_end_positions[j];
                 setword *first_nd_in_run = STSs[iter]->nd;
                 do {
                     candidates[candidates_len++] = STSs[iter];
@@ -171,8 +171,8 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, int STSs_len,
             candidates = STSs + i+1;
             candidates_len = STSs_len - (i+1);
         }
-        int filtered_STSs_len = 0;
-        for (int j=0; j<candidates_len; j++) {
+        size_t filtered_STSs_len = 0;
+        for (size_t j=0; j<candidates_len; j++) {
             struct SetAndNeighbourhood candidate = *candidates[j];
             if (intersection_is_empty(candidate.nd, new_possible_STS_roots, G.m))
                 continue;
@@ -214,7 +214,7 @@ struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, str
     struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
 
     struct SetAndNeighbourhood **STSs_pointers = bute_xmalloc(STSs->len * sizeof *STSs_pointers);
-    for (int i=0; i<STSs->len; i++) {
+    for (size_t i=0; i<STSs->len; i++) {
         STSs_pointers[i] = &STSs->vals[i];
     }
 
@@ -268,17 +268,17 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
 
         if (root_depth == 1) {
             int total_size = 0;
-            for (int i=0; i<STSs.len; i++) {
+            for (size_t i=0; i<STSs.len; i++) {
                 total_size += popcount(STSs.vals[i].set, G.m);
             }
             if (total_size == G.n) {
                 retval = true;
-                for (int i=0; i<STSs.len; i++) {
+                for (size_t i=0; i<STSs.len; i++) {
                     add_parents(bute, parent, G, &set_root, STSs.vals[i].set, -1);
                 }
             }
         } else {
-            for (int i=0; i<STSs.len; i++) {
+            for (size_t i=0; i<STSs.len; i++) {
                 if (!retval && popcount(STSs.vals[i].set, G.m) + popcount(STSs.vals[i].nd, G.m) == G.n) {
                     retval = true;
                     int parent_vertex = -1;

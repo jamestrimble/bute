@@ -3,6 +3,7 @@
 #include "trie.h"
 #include "util.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #define SMALL_SET_SIZE 2
@@ -16,7 +17,7 @@ struct TrieNode
     struct TrieNode *children;
 
     int key;
-    int val;
+    size_t val;
 
     union {
         setword *bitsets;
@@ -24,12 +25,14 @@ struct TrieNode
     };
 };
 
+#define NO_VALUE SIZE_MAX
+
 void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
         setword *initial_subtrie_intersection,
         setword *initial_subtrie_intersection_of_aux_sets)
 {
     node->key = key;
-    node->val = -1;
+    node->val = NO_VALUE;
     node->children = NULL;
     node->children_len = 0;
     if (trie->m > SMALL_SET_SIZE) {
@@ -80,7 +83,7 @@ struct TrieNode *trie_get_child_node(struct Trie *trie, struct TrieNode *node, i
 }
 
 void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node, setword *set,
-        setword *aux_set, int num_additions_permitted, int remaining_num_additions_permitted, int *arr_out, int *arr_out_len)
+        setword *aux_set, int num_additions_permitted, int remaining_num_additions_permitted, size_t *arr_out, size_t *arr_out_len)
 {
     if (popcount_of_set_difference(SUBTREE_INTERSECTION(node), set, trie->m) > num_additions_permitted) {
         return;
@@ -88,7 +91,7 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
     if (!intersection_is_empty(aux_set, SUBTREE_INTERSECTION_OF_AUX_BITSETS(node), trie->m)) {
         return;
     }
-    if (node->val != -1) {
+    if (node->val != NO_VALUE) {
         arr_out[(*arr_out_len)++] = node->val;
     }
     for (int i=0; i<node->children_len; i++) {
@@ -101,7 +104,7 @@ void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node
     }
 }
 
-void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_set, int num_additions_permitted, int *arr_out, int *arr_out_len)
+void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_set, int num_additions_permitted, size_t *arr_out, size_t *arr_out_len)
 {
     *arr_out_len = 0;
     trie_get_all_almost_subsets_helper(trie, trie->root, set, aux_set, num_additions_permitted, num_additions_permitted, arr_out, arr_out_len);
@@ -135,7 +138,7 @@ void trie_add_element(struct Trie *trie, setword *key_bitset, setword *aux_bitse
             node = new_node;
         }
     END_FOR_EACH_IN_BITSET
-    if (node->val == -1) {   // if this leaf node did not already exist
+    if (node->val == NO_VALUE) {   // if this leaf node did not already exist
         node->val = val;
     }
 }
