@@ -5,7 +5,7 @@ BUTE_MAIN_C := bute_main.c
 CFLAGS = -O3 -march=native -flto -g -ggdb -Wall -Wpedantic -Werror=vla 
 
 bute: $(OBJECTS) $(BUTE_MAIN_C)
-	${CC} -o $@ $(OBJECTS) $(BUTE_MAIN_C)
+	${CC} -o $@ $(CFLAGS) $(OBJECTS) $(BUTE_MAIN_C)
 
 bute.a: $(OBJECTS)
 	ar crs $@ $(OBJECTS)
