@@ -8,7 +8,9 @@ void hash_init(struct hash_map *s, struct Bute *bute)
 {
     s->M = 4;
     s->sz = 0;
-    s->chain_heads = bute_xcalloc(s->M, sizeof *s->chain_heads);
+    s->chain_heads = bute_xmalloc(s->M * sizeof *s->chain_heads);
+    for (size_t i=0; i<s->M; i++)
+        s->chain_heads[i] = NULL;
     s->m = bute->m;
     s->bute = bute;
 }
@@ -40,7 +42,9 @@ void hash_grow(struct hash_map *s)
     // grow the table
     size_t new_M = s->M * 2;
 
-    struct hash_chain_element **new_chain_heads = bute_xcalloc(new_M, sizeof *new_chain_heads);
+    struct hash_chain_element **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
+    for (size_t i=0; i<new_M; i++)
+        new_chain_heads[i] = NULL;
     // move the chain elements to the new chains
     for (size_t i=0; i<s->M; i++) {
         struct hash_chain_element *p = s->chain_heads[i];
