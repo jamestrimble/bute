@@ -6,7 +6,7 @@
 
 void hash_init(struct hash_map *s, struct Bute *bute)
 {
-    s->M = 4;
+    s->M = 3;
     s->sz = 0;
     s->chain_heads = bute_xmalloc(s->M * sizeof *s->chain_heads);
     for (size_t i=0; i<s->M; i++)
@@ -40,7 +40,7 @@ void hash_grow(struct hash_map *s)
 {
 //    printf("growing from %d to %d\n", s->M, s->M * 2);
     // grow the table
-    size_t new_M = s->M * 2;
+    size_t new_M = s->M * 2 + 1;
 
     struct hash_chain_element **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
     for (size_t i=0; i<new_M; i++)
@@ -89,7 +89,7 @@ bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_dep
         elem->next = s->chain_heads[h];
         s->chain_heads[h] = elem;
         ++s->sz;
-        if (s->sz * 2 > s->M) {
+        if (s->sz > s->M) {
             hash_grow(s);
         }
         return true;
