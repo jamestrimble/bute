@@ -14,6 +14,7 @@
 struct TrieNode
 {
     unsigned children_len;
+    unsigned children_capacity;
     struct TrieNode *children;
 
     int key;
@@ -35,6 +36,7 @@ void trie_node_init(struct Trie *trie, struct TrieNode *node, int key,
     node->val = NO_VALUE;
     node->children = NULL;
     node->children_len = 0;
+    node->children_capacity = 0;
     if (trie->m > SMALL_SET_SIZE) {
         node->bitsets = bute_xmalloc(trie->m * 2 * sizeof(setword));
     }
@@ -112,10 +114,11 @@ void trie_get_all_almost_subsets(struct Trie *trie, setword *set, setword *aux_s
 
 struct TrieNode *trie_node_add_child(struct TrieNode *node)
 {
-    if (node->children_len == 0) {
-        node->children = bute_xmalloc(sizeof(struct TrieNode));
-    } else if (__builtin_popcount(node->children_len) == 1) {
-        node->children = bute_xrealloc(node->children, node->children_len * 2 * sizeof(struct TrieNode));
+    if (node->children_len == node->children_capacity) {
+        node->children_capacity = node->children_capacity == 0 ? 1 :
+                                  node->children_capacity == 1 ? 2 :
+                                  node->children_capacity + node->children_capacity / 2;
+        node->children = bute_xrealloc(node->children, node->children_capacity * sizeof(struct TrieNode));
     }
     ++node->children_len;
     return &node->children[node->children_len - 1];
