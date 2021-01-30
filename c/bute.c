@@ -320,16 +320,19 @@ int optimise(struct Graph G, int *parent, struct Bute *bute)
     return -1;  // never reached
 }
 
-struct Graph *new_graph(int n)
+struct Graph *new_graph(unsigned n)
 {
     struct Graph *G = bute_xmalloc(sizeof *G);
     *G = create_empty_graph(n);
     return G;
 }
 
-void graph_add_edge(struct Graph *G, int v, int w)
+int graph_add_edge(struct Graph *G, unsigned v, unsigned w)
 {
+    if (v == w || v >= G->n || w >= G->n)
+        return -1;
     ADDONEEDGE(G->g, v, w, G->m);
+    return 0;
 }
 
 int graph_node_count(struct Graph *G)
