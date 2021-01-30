@@ -14,8 +14,11 @@ class ButeSolver {
     }
 
     TreedepthResult solve() {
+        if (g.n == 0) {
+            return new TreedepthResult(0, new int[0]);
+        }
         Dom dom = new Dom(g, options);
-        for (int target=0; target<=n; target++) {
+        for (int target=1; target<=n; target++) {
             long prevHelperCalls = Stats.helperCalls;
             TreedepthResult result =
                     new ButeDecisionProblemSolver(g, dom, target, options).solve();

@@ -307,15 +307,17 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
 
 int optimise(struct Graph G, int *parent, struct Bute *bute)
 {
-    int target = 0;
-    for ( ; target<=G.n; target++) {
+    if (G.n == 0) {
+        return 0;
+    }
+    for (int target=1 ; target<=G.n; target++) {
 //        printf("target %d\n", target);
         bool result = solve(bute, G, target, parent);
         if (result) {
-            break;
+            return target;
         }
     }
-    return target;
+    return -1;  // never reached
 }
 
 struct Graph *new_graph(int n)
