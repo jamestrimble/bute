@@ -87,22 +87,19 @@ struct TrieNode *trie_get_child_node(struct Trie *trie, struct TrieNode *node, i
 void trie_get_all_almost_subsets_helper(struct Trie *trie, struct TrieNode *node, setword *set,
         setword *aux_set, int num_additions_permitted, int remaining_num_additions_permitted, size_t *arr_out, size_t *arr_out_len)
 {
-    if (popcount_of_set_difference(SUBTREE_INTERSECTION(node), set, trie->m) > num_additions_permitted) {
-        return;
-    }
-    if (!intersection_is_empty(aux_set, SUBTREE_INTERSECTION_OF_AUX_BITSETS(node), trie->m)) {
-        return;
-    }
     if (node->val != NO_VALUE) {
         arr_out[(*arr_out_len)++] = node->val;
     }
     for (int i=0; i<node->children_len; i++) {
         struct TrieNode *child = &node->children[i];
         int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child->key);
-        if (new_remaining_num_additions_permitted >= 0) {
-            trie_get_all_almost_subsets_helper(trie, child, set, aux_set, num_additions_permitted,
-                    new_remaining_num_additions_permitted, arr_out, arr_out_len);
+        if (new_remaining_num_additions_permitted < 0 ||
+                !intersection_is_empty(aux_set, SUBTREE_INTERSECTION_OF_AUX_BITSETS(child), trie->m) ||
+                popcount_of_set_difference(SUBTREE_INTERSECTION(child), set, trie->m) > num_additions_permitted) {
+            continue;
         }
+        trie_get_all_almost_subsets_helper(trie, child, set, aux_set, num_additions_permitted,
+                new_remaining_num_additions_permitted, arr_out, arr_out_len);
     }
 }
 
