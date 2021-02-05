@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "bute.h"
 
 #define BUFFERSIZE 1024
@@ -41,14 +42,33 @@ struct Graph *read_graph_from_stdin()
 
 int main(int argc, char *argv[])
 {
+    struct ButeOptions options = bute_default_options();
+    for (int i=1; i<argc; i++) {
+        if (!strcmp(argv[i], "--no-trie")) {
+            options.use_trie = 0;
+        } else if (!strcmp(argv[i], "--no-domination")) {
+            options.use_domination = 0;
+        } else if (!strcmp(argv[i], "--no-top_chain")) {
+            options.use_top_chain = 0;
+        } else if (!strcmp(argv[i], "--print-stats")) {
+            options.print_stats = 1;
+        }
+    }
     struct Graph *G = read_graph_from_stdin();
     if (G == NULL) {
         return 1;
     }
     int *parent = malloc(graph_node_count(G) * sizeof *parent);
 
-    int treedepth = bute_optimise(G, parent);
+    struct ButeResult result = bute_optimise(G, &options, parent);
+    int treedepth = result.treedepth;
 
+    if (options.print_stats) {
+        printf("# queries %llu\n", result.queries);
+        printf("# helperCalls %llu\n", result.helper_calls);
+        printf("# lastDecisionProblemHelperCalls %llu\n", result.last_decision_problem_helper_calls);
+        printf("# setCount %llu\n", result.set_count);
+    }
     printf("%d\n", treedepth);
     for (int i=0; i<graph_node_count(G); i++) {
         printf("%d\n", parent[i] + 1);

@@ -122,13 +122,15 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         struct Bute *bute, struct Graph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
         int root_depth, struct hash_map *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
+    ++bute->result.helper_calls;
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
         try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
                 set_root, new_STSs);
     END_FOR_EACH_IN_BITSET
 
     struct Trie trie;
-    if (STSs_len >= MIN_LEN_FOR_TRIE)
+    bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
+    if (use_trie)
         trie_init(&trie, G.n, G.m, bute);
     size_t *almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
 
@@ -150,7 +152,8 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
 
         struct SetAndNeighbourhood **candidates;
         size_t candidates_len = 0;
-        if (STSs_len >= MIN_LEN_FOR_TRIE) {
+        ++bute->result.queries;
+        if (use_trie) {
             candidates = filtered_STSs;         // we'll filter in place afterwards
             size_t almost_subset_end_positions_len;
             trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - nd_popcount,
@@ -200,12 +203,12 @@ void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         free_bitset(bute, new_possible_STS_roots);
         free_bitset(bute, new_union_of_subtrees);
 
-        if (STSs_len >= MIN_LEN_FOR_TRIE && root_depth > nd_popcount) {
+        if (use_trie && root_depth > nd_popcount) {
             trie_add_element(&trie, nd, s, i);
         }
     }
     free(filtered_STSs);
-    if (STSs_len >= MIN_LEN_FOR_TRIE)
+    if (use_trie)
         trie_destroy(&trie);
     free(almost_subset_end_positions);
 }
@@ -268,6 +271,8 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
             break;
         }
 
+        bute->result.set_count += set_root.sz - prev_set_root_size;
+
         if (root_depth == 1) {
             int total_size = 0;
             for (size_t i=0; i<STSs.len; i++) {
@@ -279,7 +284,7 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
                     add_parents(bute, parent, G, &set_root, STSs.vals[i].set, -1);
                 }
             }
-        } else {
+        } else if (bute->options.use_top_chain) {
             for (size_t i=0; i<STSs.len; i++) {
                 if (!retval && popcount(STSs.vals[i].set, G.m) + popcount(STSs.vals[i].nd, G.m) == G.n) {
                     retval = true;
@@ -305,19 +310,32 @@ bool solve(struct Bute *bute, struct Graph G, int target, int *parent)
     return retval;
 }
 
-int optimise(struct Graph G, int *parent, struct Bute *bute)
+void optimise(struct Graph G, int *parent, struct Bute *bute)
 {
     if (G.n == 0) {
-        return 0;
+        return;
     }
     for (int target=1 ; target<=G.n; target++) {
 //        printf("target %d\n", target);
+        unsigned long long prev_helper_calls = bute->result.helper_calls;
         bool result = solve(bute, G, target, parent);
         if (result) {
-            return target;
+            bute->result.treedepth = target;
+            bute->result.last_decision_problem_helper_calls =
+                    bute->result.helper_calls - prev_helper_calls;
+            return;
         }
     }
-    return -1;  // never reached
+}
+
+struct ButeOptions bute_default_options()
+{
+    return (struct ButeOptions) {
+        .use_trie=1,
+        .use_domination=1,
+        .use_top_chain=1,
+        .print_stats=0
+    };
 }
 
 struct Graph *new_graph(unsigned n)
@@ -346,11 +364,12 @@ void free_graph(struct Graph *G)
     free(G);
 }
 
-int bute_optimise(struct Graph *G, int *parent)
+struct ButeResult bute_optimise(struct Graph *G, struct ButeOptions *options, int *parent)
 {
     struct Bute bute;
-    Bute_init(&bute, *G);
-    int treedepth = optimise(*G, parent, &bute);
+    struct ButeOptions opts = options==NULL ? bute_default_options() : *options;
+    Bute_init(&bute, *G, opts);
+    optimise(*G, parent, &bute);
     Bute_destroy(&bute);
-    return treedepth;
+    return bute.result;
 }

@@ -3,19 +3,8 @@
 #include "graph.h"
 #include "util.h"
 
-void Bute_init(struct Bute *bute, struct Graph G)
+static void determine_domination(struct Bute *bute, struct Graph G)
 {
-    bute->m = G.m;
-    bute->bitset_free_list_head = NULL;
-    bute->n = G.n;
-    bute->adj_vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->adj_vv_dominated_by);
-    bute->vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->vv_dominated_by);
-    bute->vv_that_dominate = bute_xmalloc(G.n * sizeof *bute->vv_that_dominate);
-    for (int v=0; v<G.n; v++) {
-        bute->adj_vv_dominated_by[v] = get_empty_bitset(bute);
-        bute->vv_dominated_by[v] = get_empty_bitset(bute);
-        bute->vv_that_dominate[v] = get_empty_bitset(bute);
-    }
     for (int v=0; v<G.n; v++) {
         for (int w=0; w<G.n; w++) {
             if (w != v) {
@@ -38,6 +27,26 @@ void Bute_init(struct Bute *bute, struct Graph G)
                 free_bitset(bute, nd_of_v_and_v_and_w);
             }
         }
+    }
+}
+
+void Bute_init(struct Bute *bute, struct Graph G, struct ButeOptions options)
+{
+    bute->options = options;
+    bute->result = (struct ButeResult) {0};
+    bute->m = G.m;
+    bute->bitset_free_list_head = NULL;
+    bute->n = G.n;
+    bute->adj_vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->adj_vv_dominated_by);
+    bute->vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->vv_dominated_by);
+    bute->vv_that_dominate = bute_xmalloc(G.n * sizeof *bute->vv_that_dominate);
+    for (int v=0; v<G.n; v++) {
+        bute->adj_vv_dominated_by[v] = get_empty_bitset(bute);
+        bute->vv_dominated_by[v] = get_empty_bitset(bute);
+        bute->vv_that_dominate[v] = get_empty_bitset(bute);
+    }
+    if (options.use_domination) {
+        determine_domination(bute, G);
     }
 }
 

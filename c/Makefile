@@ -13,12 +13,12 @@ bute.a: $(OBJECTS)
 clean:
 	rm -f bute bute.a *.o
 
-bitset.o: bitset.c bitset.h bute_solver.h util.h
+bitset.o: bitset.c bitset.h bute_solver.h bute.h util.h
 bute.o: bute.c bute.h bitset.h bute_solver.h graph.h hash_map.h trie.h \
  util.h
 bute_main.o: bute_main.c bute.h
-bute_solver.o: bute_solver.c bute_solver.h bitset.h graph.h util.h
+bute_solver.o: bute_solver.c bute_solver.h bitset.h bute.h graph.h util.h
 graph.o: graph.c bitset.h graph.h util.h
-hash_map.o: hash_map.c hash_map.h bitset.h bute_solver.h util.h
+hash_map.o: hash_map.c hash_map.h bitset.h bute_solver.h bute.h util.h
 trie.o: trie.c trie.h bitset.h util.h
 util.o: util.c util.h
