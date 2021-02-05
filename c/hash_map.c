@@ -4,7 +4,15 @@
 #include "hash_map.h"
 #include "util.h"
 
-void hash_init(struct hash_map *s, struct Bute *bute)
+struct ButeHashChainElement
+{
+    int val;
+    int root_depth;
+    struct ButeHashChainElement *next;
+    setword key[];
+};
+
+void bute_hash_init(struct ButeHashMap *s, struct Bute *bute)
 {
     s->M = 3;
     s->sz = 0;
@@ -16,7 +24,7 @@ void hash_init(struct hash_map *s, struct Bute *bute)
 }
 
 // Based on https://gist.github.com/badboy/6267743
-unsigned hash6432shift(setword key)
+static unsigned hash6432shift(setword key)
 {
     key = (~key) + (key << 18); // key = (key << 18) - key - 1;
     key = key ^ (key >> 31);
@@ -27,7 +35,7 @@ unsigned hash6432shift(setword key)
     return (unsigned) key;
 }
 
-unsigned hash(setword *x, int m)
+static unsigned hash(setword *x, int m)
 {
     unsigned result = 0;
     for (int i=0; i<m; i++) {
@@ -36,20 +44,20 @@ unsigned hash(setword *x, int m)
     return result;
 }
 
-void hash_grow(struct hash_map *s)
+static void hash_grow(struct ButeHashMap *s)
 {
 //    printf("growing from %d to %d\n", s->M, s->M * 2);
     // grow the table
     size_t new_M = s->M * 2 + 1;
 
-    struct hash_chain_element **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
+    struct ButeHashChainElement **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
     for (size_t i=0; i<new_M; i++)
         new_chain_heads[i] = NULL;
     // move the chain elements to the new chains
     for (size_t i=0; i<s->M; i++) {
-        struct hash_chain_element *p = s->chain_heads[i];
+        struct ButeHashChainElement *p = s->chain_heads[i];
         while (p) {
-            struct hash_chain_element *next_in_old_list = p->next;
+            struct ButeHashChainElement *next_in_old_list = p->next;
             unsigned h = hash(p->key, s->m) % new_M;
             p->next = new_chain_heads[h];
             new_chain_heads[h] = p;
@@ -61,11 +69,11 @@ void hash_grow(struct hash_map *s)
     s->M = new_M;
 }
 
-struct hash_chain_element *get_chain_element(struct hash_map *s, setword *key, unsigned h)
+static struct ButeHashChainElement *get_chain_element(struct ButeHashMap *s, setword *key, unsigned h)
 {
-    struct hash_chain_element *p = s->chain_heads[h];
+    struct ButeHashChainElement *p = s->chain_heads[h];
     while (p) {
-        if (bitset_equals(p->key, key, s->m)) {
+        if (bute_bitset_equals(p->key, key, s->m)) {
             return p;
         }
         p = p->next;
@@ -76,12 +84,12 @@ struct hash_chain_element *get_chain_element(struct hash_map *s, setword *key, u
 // add key-val pair if key is not in the hash map.
 // If key is already in the map, leave value unchanged but update root depth.
 // Return true if key is added or root depth is updated.
-bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_depth)
+bool bute_hash_add_or_update(struct ButeHashMap *s, setword * key, int val, int root_depth)
 {
     unsigned h = hash(key, s->m) % s->M;
-    struct hash_chain_element *elem = get_chain_element(s, key, h);
+    struct ButeHashChainElement *elem = get_chain_element(s, key, h);
     if (elem == NULL) {
-        struct hash_chain_element *elem = bute_xmalloc(sizeof *elem + s->m * sizeof(setword));
+        struct ButeHashChainElement *elem = bute_xmalloc(sizeof *elem + s->m * sizeof(setword));
         for (int k=0; k<s->m; k++)
             elem->key[k] = key[k];
         elem->val = val;
@@ -100,40 +108,22 @@ bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_dep
     return false;
 }
 
-bool hash_get_val(struct hash_map *s, setword *key, int *val)
+bool bute_hash_get_val(struct ButeHashMap *s, setword *key, int *val)
 {
     unsigned h = hash(key, s->m) % s->M;
-    struct hash_chain_element *chain_elem = get_chain_element(s, key, h);
+    struct ButeHashChainElement *chain_elem = get_chain_element(s, key, h);
     if (chain_elem) {
         *val = chain_elem->val;
     }
     return false;
 }
 
-setword ** hash_map_to_list(struct hash_map *s)
-{
-    setword **retval = bute_xmalloc(s->sz * sizeof *retval);
-    size_t j = 0;
-    for (size_t i=0; i<s->M; i++) {
-        struct hash_chain_element *p = s->chain_heads[i];
-        while (p) {
-            retval[j] = get_bitset(s->bute);
-            for (int k=0; k<s->m; k++) {
-                retval[j][k] = p->key[k];
-            }
-            j++;
-            p = p->next;
-        }
-    }
-    return retval;
-}
-
-void hash_destroy(struct hash_map *s)
+void bute_hash_destroy(struct ButeHashMap *s)
 {
     for (size_t i=0; i<s->M; i++) {
-        struct hash_chain_element *p = s->chain_heads[i];
+        struct ButeHashChainElement *p = s->chain_heads[i];
         while (p) {
-            struct hash_chain_element *next_p = p->next;
+            struct ButeHashChainElement *next_p = p->next;
             free(p);
             p = next_p;
         }

@@ -22,31 +22,31 @@
 #define ADDONEEDGE(g, v, w, m) {ADDELEMENT(GRAPHROW(g, v, m), w); ADDELEMENT(GRAPHROW(g, w, m), v);}
 #define SETWORDSNEEDED(n) ((n + (WORDSIZE-1)) / WORDSIZE)
 
-void bitset_intersect_with(setword *vv, setword const *ww, int m);
+void bute_bitset_intersect_with(setword *vv, setword const *ww, int m);
 
-int popcount_of_set_difference(setword const *vv, setword const *ww, int m);
+int bute_popcount_of_set_difference(setword const *vv, setword const *ww, int m);
 
-bool intersection_is_empty(setword *vv, setword *ww, int m);
+bool bute_intersection_is_empty(setword *vv, setword *ww, int m);
 
-bool bitset_equals(setword *vv, setword *ww, int m);
+bool bute_bitset_equals(setword *vv, setword *ww, int m);
 
-bool bitset_is_superset(setword *vv, setword *ww, int m);
+bool bute_bitset_is_superset(setword *vv, setword *ww, int m);
 
-bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m);
+bool bute_bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m);
 
-void bitset_addall(setword *vv, setword const *ww, int m);
+void bute_bitset_addall(setword *vv, setword const *ww, int m);
 
-void bitset_removeall(setword *vv, setword const *ww, int m);
+void bute_bitset_removeall(setword *vv, setword const *ww, int m);
 
-void clear_bitset(setword *vv, int m);
+void bute_clear_bitset(setword *vv, int m);
 
-bool isempty(setword *vv, int m);
+bool bute_bitset_is_empty(setword *vv, int m);
 
-int popcount_of_union(setword const *vv, setword const *ww, int m);
+int bute_popcount_of_union(setword const *vv, setword const *ww, int m);
 
-int bitset_compare(setword const *vv, setword const *ww, int m);
+int bute_bitset_compare(setword const *vv, setword const *ww, int m);
 
-int popcount(setword const *vv, int m);
+int bute_popcount(setword const *vv, int m);
 
 //https://stackoverflow.com/a/10380191/3347737
 #define PASTE_HELPER(a,b) a ## b
@@ -61,32 +61,32 @@ int popcount(setword const *vv, int m);
 
 /* We have a free-list of bitsets */
 
-struct Bitset
+struct ButeBitset
 {
-    struct Bitset *next;
+    struct ButeBitset *next;
     setword bitset[];
 };
 
 struct Bute;
 
-struct Bitset *get_Bitset(struct Bute *bute);
+struct ButeBitset *get_Bitset(struct Bute *bute);
 
-setword *get_bitset(struct Bute *bute);
+setword *bute_get_bitset(struct Bute *bute);
 
-setword *get_empty_bitset(struct Bute *bute);
+setword *bute_get_empty_bitset(struct Bute *bute);
 
-setword *get_full_bitset(struct Bute *bute, int n);
+setword *bute_get_full_bitset(struct Bute *bute, int n);
 
-setword *get_copy_of_bitset(struct Bute *bute, setword const *vv);
+setword *bute_get_copy_of_bitset(struct Bute *bute, setword const *vv);
 
-setword *get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww);
+setword *bute_get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww);
 
-void free_Bitset(struct Bute *bute, struct Bitset *b);
+void bute_free_Bitset(struct Bute *bute, struct ButeBitset *b);
 
-void free_bitset(struct Bute *bute, setword *bitset);
+void bute_free_bitset(struct Bute *bute, setword *bitset);
 
-void free_Bitsets(struct Bute *bute, struct Bitset *b);
+void bute_free_Bitsets(struct Bute *bute, struct ButeBitset *b);
 
-void deallocate_Bitsets(struct Bute *bute);
+void bute_deallocate_Bitsets(struct Bute *bute);
 
 #endif

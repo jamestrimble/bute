@@ -6,7 +6,7 @@
 
 struct Bute {
     int m;   // number of setwords needed for each bitset
-    struct Bitset *bitset_free_list_head;
+    struct ButeBitset *bitset_free_list_head;
     setword **vv_dominated_by;
     setword **vv_that_dominate;
     setword **adj_vv_dominated_by;
@@ -15,9 +15,9 @@ struct Bute {
     struct ButeResult result;
 };
 
-struct Graph;
+struct ButeGraph;
 
-void Bute_init(struct Bute *bute, struct Graph G, struct ButeOptions options);
+void Bute_init(struct Bute *bute, struct ButeGraph G, struct ButeOptions options);
 
 void Bute_destroy(struct Bute *bute);
 

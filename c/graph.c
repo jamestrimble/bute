@@ -4,28 +4,18 @@
 
 #include <stdio.h>
 
-void find_adjacent_vv(setword *s, struct Graph G, setword *adj_vv)
-{
-    clear_bitset(adj_vv, G.m);
-    FOR_EACH_IN_BITSET(v, s, G.m)
-        bitset_addall(adj_vv, GRAPHROW(G.g, v, G.m), G.m);
-    END_FOR_EACH_IN_BITSET
-    for (int k=0; k<G.m; k++)
-        bitset_removeall(adj_vv, s, G.m);
-}
-
-struct Graph create_empty_graph(int n)
+struct ButeGraph bute_create_empty_graph(int n)
 {
     int m = SETWORDSNEEDED(n);
     graph *g = bute_xcalloc(n * m, sizeof(graph));
-    return (struct Graph) {g, n, m};
+    return (struct ButeGraph) {g, n, m};
 }
 
-struct Bitset *make_connected_components(setword *vv, struct Graph G, struct Bute *bute)
+struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph G, struct Bute *bute)
 {
-    struct Bitset *retval = NULL;
-    setword *visited = get_empty_bitset(bute);
-    setword *vv_in_prev_components = get_empty_bitset(bute);
+    struct ButeBitset *retval = NULL;
+    setword *visited = bute_get_empty_bitset(bute);
+    setword *vv_in_prev_components = bute_get_empty_bitset(bute);
     int *queue = bute_xmalloc(G.n * sizeof *queue);
     FOR_EACH_IN_BITSET(v, vv, G.m)
         if (ISELEMENT(visited, v))
@@ -42,18 +32,18 @@ struct Bitset *make_connected_components(setword *vv, struct Graph G, struct But
                 }
             END_FOR_EACH_IN_BITSET
         }
-        struct Bitset *bitset = get_Bitset(bute);
+        struct ButeBitset *bitset = get_Bitset(bute);
         bitset->next = retval;
         retval = bitset;
         setword *component = bitset->bitset;
         for (int k=0; k<G.m; k++)
             component[k] = visited[k] & ~vv_in_prev_components[k];
 
-        bitset_addall(vv_in_prev_components, visited, G.m);
+        bute_bitset_addall(vv_in_prev_components, visited, G.m);
     END_FOR_EACH_IN_BITSET
 
-    free_bitset(bute, vv_in_prev_components);
-    free_bitset(bute, visited);
+    bute_free_bitset(bute, vv_in_prev_components);
+    bute_free_bitset(bute, visited);
     free(queue);
     return retval;
 }

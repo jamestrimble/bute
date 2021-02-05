@@ -20,20 +20,20 @@ struct ButeResult {
     unsigned long long set_count;
 };
 
-struct Graph;
+struct ButeGraph;
 
-struct Graph *new_graph(unsigned n);
+struct ButeGraph *bute_new_graph(unsigned n);
 
 struct ButeOptions bute_default_options();
 
 // returns a nonzero value if v==w or either vertex is out of range
-int graph_add_edge(struct Graph *G, unsigned v, unsigned w);
+int bute_graph_add_edge(struct ButeGraph *G, unsigned v, unsigned w);
 
-int graph_node_count(struct Graph *G);
+int bute_graph_node_count(struct ButeGraph *G);
 
-void free_graph(struct Graph *G);
+void bute_free_graph(struct ButeGraph *G);
 
-struct ButeResult bute_optimise(struct Graph *G, struct ButeOptions *options, int *parent);
+struct ButeResult bute_optimise(struct ButeGraph *G, struct ButeOptions *options, int *parent);
 
 #ifdef __cplusplus
 }

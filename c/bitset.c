@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-void set_first_k_bits(setword *bitset, int k)
+static void set_first_k_bits(setword *bitset, int k)
 {
     int wordnum = 0;
     while (k >= WORDSIZE) {
@@ -19,13 +19,13 @@ void set_first_k_bits(setword *bitset, int k)
     }
 }
 
-void bitset_intersect_with(setword *vv, setword const *ww, int m)
+void bute_bitset_intersect_with(setword *vv, setword const *ww, int m)
 {
     for (int i=0; i<m; i++)
         vv[i] &= ww[i];
 }
 
-int popcount_of_set_difference(setword const *vv, setword const *ww, int m)
+int bute_popcount_of_set_difference(setword const *vv, setword const *ww, int m)
 {
     int count = 0;
     for (int i=0; i<m; i++)
@@ -33,7 +33,7 @@ int popcount_of_set_difference(setword const *vv, setword const *ww, int m)
     return count;
 }
 
-bool intersection_is_empty(setword *vv, setword *ww, int m)
+bool bute_intersection_is_empty(setword *vv, setword *ww, int m)
 {
     for (int i=0; i<m; i++)
         if (vv[i] & ww[i])
@@ -41,7 +41,7 @@ bool intersection_is_empty(setword *vv, setword *ww, int m)
     return true;
 }
 
-bool bitset_equals(setword *vv, setword *ww, int m)
+bool bute_bitset_equals(setword *vv, setword *ww, int m)
 {
     for (int i=0; i<m; i++)
         if (vv[i] != ww[i])
@@ -49,7 +49,7 @@ bool bitset_equals(setword *vv, setword *ww, int m)
     return true;
 }
 
-bool bitset_is_superset(setword *vv, setword *ww, int m)
+bool bute_bitset_is_superset(setword *vv, setword *ww, int m)
 {
     for (int i=0; i<m; i++)
         if (ww[i] & ~vv[i])
@@ -57,7 +57,7 @@ bool bitset_is_superset(setword *vv, setword *ww, int m)
     return true;
 }
 
-bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m)
+bool bute_bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m)
 {
     for (int i=0; i<m; i++)
         if (ww[i] & ~(vv[i] | uu[i]))
@@ -65,25 +65,25 @@ bool bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m)
     return true;
 }
 
-void bitset_addall(setword *vv, setword const *ww, int m)
+void bute_bitset_addall(setword *vv, setword const *ww, int m)
 {
     for (int i=0; i<m; i++)
         vv[i] |= ww[i];
 }
 
-void bitset_removeall(setword *vv, setword const *ww, int m)
+void bute_bitset_removeall(setword *vv, setword const *ww, int m)
 {
     for (int i=0; i<m; i++)
         vv[i] &= ~ww[i];
 }
 
-void clear_bitset(setword *vv, int m)
+void bute_clear_bitset(setword *vv, int m)
 {
     for (int i=0; i<m; i++)
         vv[i] = 0;
 }
 
-bool isempty(setword *vv, int m)
+bool bute_bitset_is_empty(setword *vv, int m)
 {
     for (int i=0; i<m; i++)
         if (vv[i])
@@ -91,7 +91,7 @@ bool isempty(setword *vv, int m)
     return true;
 }
 
-int popcount_of_union(setword const *vv, setword const *ww, int m)
+int bute_popcount_of_union(setword const *vv, setword const *ww, int m)
 {
     int count = 0;
     for (int i=0; i<m; i++)
@@ -99,7 +99,7 @@ int popcount_of_union(setword const *vv, setword const *ww, int m)
     return count;
 }
 
-int bitset_compare(setword const *vv, setword const *ww, int m)
+int bute_bitset_compare(setword const *vv, setword const *ww, int m)
 {
     for (int i=m; i--; ) {
         if (vv[i] != ww[i]) {
@@ -109,7 +109,7 @@ int bitset_compare(setword const *vv, setword const *ww, int m)
     return 0;
 }
 
-int popcount(setword const *vv, int m)
+int bute_popcount(setword const *vv, int m)
 {
     int count = 0;
     for (int i=0; i<m; i++)
@@ -117,58 +117,58 @@ int popcount(setword const *vv, int m)
     return count;
 }
 
-struct Bitset *get_Bitset(struct Bute *bute)
+struct ButeBitset *get_Bitset(struct Bute *bute)
 {
 #ifdef USE_MALLOC_FOR_BITSETS
-    return bute_xmalloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
+    return bute_xmalloc(sizeof(struct ButeBitset) + bute->m * sizeof(setword));
 #endif
     if (bute->bitset_free_list_head == NULL) {
-        struct Bitset *b = bute_xmalloc(sizeof(struct Bitset) + bute->m * sizeof(setword));
+        struct ButeBitset *b = bute_xmalloc(sizeof(struct ButeBitset) + bute->m * sizeof(setword));
         b->next = NULL;
         bute->bitset_free_list_head = b;
     }
-    struct Bitset *b = bute->bitset_free_list_head;
+    struct ButeBitset *b = bute->bitset_free_list_head;
     bute->bitset_free_list_head = b->next;
     return b;
 }
 
-setword *get_bitset(struct Bute *bute)
+setword *bute_get_bitset(struct Bute *bute)
 {
     return get_Bitset(bute)->bitset;
 }
 
-setword *get_empty_bitset(struct Bute *bute)
+setword *bute_get_empty_bitset(struct Bute *bute)
 {
-    setword *b = get_bitset(bute);
+    setword *b = bute_get_bitset(bute);
     for (int i=0; i<bute->m; i++)
         b[i] = 0;
     return b;
 }
 
-setword *get_full_bitset(struct Bute *bute, int n)
+setword *bute_get_full_bitset(struct Bute *bute, int n)
 {
-    setword *b = get_bitset(bute);
+    setword *b = bute_get_bitset(bute);
     set_first_k_bits(b, n);
     return b;
 }
 
-setword *get_copy_of_bitset(struct Bute *bute, setword const *vv)
+setword *bute_get_copy_of_bitset(struct Bute *bute, setword const *vv)
 {
-    setword *b = get_bitset(bute);
+    setword *b = bute_get_bitset(bute);
     for (int i=0; i<bute->m; i++)
         b[i] = vv[i];
     return b;
 }
 
-setword *get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww)
+setword *bute_get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww)
 {
-    setword *b = get_bitset(bute);
+    setword *b = bute_get_bitset(bute);
     for (int i=0; i<bute->m; i++)
         b[i] = vv[i] | ww[i];
     return b;
 }
 
-void free_Bitset(struct Bute *bute, struct Bitset *b)
+void bute_free_Bitset(struct Bute *bute, struct ButeBitset *b)
 {
 #ifdef USE_MALLOC_FOR_BITSETS
     free(b);
@@ -178,25 +178,25 @@ void free_Bitset(struct Bute *bute, struct Bitset *b)
     bute->bitset_free_list_head = b;
 }
 
-void free_bitset(struct Bute *bute, setword *bitset)
+void bute_free_bitset(struct Bute *bute, setword *bitset)
 {
-    struct Bitset *b = (struct Bitset *)((char *) bitset - offsetof(struct Bitset, bitset));
-    free_Bitset(bute, b);
+    struct ButeBitset *b = (struct ButeBitset *)((char *) bitset - offsetof(struct ButeBitset, bitset));
+    bute_free_Bitset(bute, b);
 }
 
-void free_Bitsets(struct Bute *bute, struct Bitset *b)
+void bute_free_Bitsets(struct Bute *bute, struct ButeBitset *b)
 {
     while (b) {
-        struct Bitset *next_to_free = b->next;
-        free_Bitset(bute, b);
+        struct ButeBitset *next_to_free = b->next;
+        bute_free_Bitset(bute, b);
         b = next_to_free;
     }
 }
 
-void deallocate_Bitsets(struct Bute *bute)
+void bute_deallocate_Bitsets(struct Bute *bute)
 {
     while (bute->bitset_free_list_head) {
-        struct Bitset *next_to_free = bute->bitset_free_list_head->next;
+        struct ButeBitset *next_to_free = bute->bitset_free_list_head->next;
         free(bute->bitset_free_list_head);
         bute->bitset_free_list_head = next_to_free;
     }

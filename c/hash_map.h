@@ -4,31 +4,23 @@
 #include "bitset.h"
 #include "bute_solver.h"
 
-struct hash_chain_element
-{
-    int val;
-    int root_depth;
-    struct hash_chain_element *next;
-    setword key[];
-};
+struct ButeHashChainElement;
 
-struct hash_map
+struct ButeHashMap
 {
     size_t M;
     size_t sz;
-    struct hash_chain_element **chain_heads;
+    struct ButeHashChainElement **chain_heads;
     int m;
     struct Bute *bute;
 };
 
-void hash_init(struct hash_map *s, struct Bute *bute);
+void bute_hash_init(struct ButeHashMap *s, struct Bute *bute);
 
-void hash_destroy(struct hash_map *s);
+void bute_hash_destroy(struct ButeHashMap *s);
 
-bool hash_add_or_update(struct hash_map *s, setword * key, int val, int root_depth);
+bool bute_hash_add_or_update(struct ButeHashMap *s, setword * key, int val, int root_depth);
 
-setword ** hash_map_to_list(struct hash_map *s);
-
-bool hash_get_val(struct hash_map *s, setword *key, int *val);
+bool bute_hash_get_val(struct ButeHashMap *s, setword *key, int *val);
 
 #endif

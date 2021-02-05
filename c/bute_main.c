@@ -5,9 +5,9 @@
 
 #define BUFFERSIZE 1024
 
-struct Graph *read_graph_from_stdin()
+struct ButeGraph *read_graph_from_stdin()
 {
-    struct Graph *G = NULL;
+    struct ButeGraph *G = NULL;
     char s[BUFFERSIZE], s1[32], s2[32];
     int n, edge_count;
     int v, w;
@@ -24,7 +24,7 @@ struct Graph *read_graph_from_stdin()
         case 'p':
             if(sscanf(s, "%s %s %d %d", s1, s2, &n, &edge_count) != 4)
                 exit(1);
-            G = new_graph(n);
+            G = bute_new_graph(n);
             break;
         default:
             if (sscanf(s, "%d %d", &v, &w) != 2)
@@ -33,7 +33,7 @@ struct Graph *read_graph_from_stdin()
                 continue;
             --v;
             --w;
-            graph_add_edge(G, v, w);
+                bute_graph_add_edge(G, v, w);
             ++num_edges_read;
         }
     }
@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
             options.print_stats = 1;
         }
     }
-    struct Graph *G = read_graph_from_stdin();
+    struct ButeGraph *G = read_graph_from_stdin();
     if (G == NULL) {
         return 1;
     }
-    int *parent = malloc(graph_node_count(G) * sizeof *parent);
+    int *parent = malloc(bute_graph_node_count(G) * sizeof *parent);
 
     struct ButeResult result = bute_optimise(G, &options, parent);
     int treedepth = result.treedepth;
@@ -70,10 +70,10 @@ int main(int argc, char *argv[])
         printf("# setCount %llu\n", result.set_count);
     }
     printf("%d\n", treedepth);
-    for (int i=0; i<graph_node_count(G); i++) {
+    for (int i=0; i < bute_graph_node_count(G); i++) {
         printf("%d\n", parent[i] + 1);
     }
 
-    free_graph(G);
+    bute_free_graph(G);
     free(parent);
 }
