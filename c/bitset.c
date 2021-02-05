@@ -9,10 +9,10 @@
 void set_first_k_bits(setword *bitset, int k)
 {
     int wordnum = 0;
-    while (k > 63) {
+    while (k >= WORDSIZE) {
         bitset[wordnum] = ~0ull;
         ++wordnum;
-        k -= 64;
+        k -= WORDSIZE;
     }
     if (k) {
         bitset[wordnum] = (1ull << k) - 1;
