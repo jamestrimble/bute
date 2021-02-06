@@ -67,7 +67,7 @@ struct ButeBitset
 
 struct Bute;
 
-struct ButeBitset *get_Bitset(struct Bute *bute);
+struct ButeBitset *bute_get_Bitset(struct Bute *bute);
 
 setword *bute_get_bitset(struct Bute *bute);
 

@@ -111,7 +111,7 @@ int bute_popcount(setword const *vv, int m)
     return count;
 }
 
-struct ButeBitset *get_Bitset(struct Bute *bute)
+struct ButeBitset *bute_get_Bitset(struct Bute *bute)
 {
 #ifdef USE_MALLOC_FOR_BITSETS
     return bute_xmalloc(sizeof(struct ButeBitset) + bute->m * sizeof(setword));
@@ -128,7 +128,7 @@ struct ButeBitset *get_Bitset(struct Bute *bute)
 
 setword *bute_get_bitset(struct Bute *bute)
 {
-    return get_Bitset(bute)->bitset;
+    return bute_get_Bitset(bute)->bitset;
 }
 
 setword *bute_get_empty_bitset(struct Bute *bute)

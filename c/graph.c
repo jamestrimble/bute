@@ -32,7 +32,7 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
                 }
             END_FOR_EACH_IN_BITSET
         }
-        struct ButeBitset *bitset = get_Bitset(bute);
+        struct ButeBitset *bitset = bute_get_Bitset(bute);
         bitset->next = retval;
         retval = bitset;
         setword *component = bitset->bitset;
