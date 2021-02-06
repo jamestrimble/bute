@@ -5,6 +5,11 @@
 extern "C" {
 #endif
 
+#define BUTE_OK              0
+#define BUTE_OUT_OF_MEMORY   1
+#define BUTE_INVALID_EDGE    2
+#define BUTE_UNSAT         101
+
 struct ButeOptions {
     int use_trie;
     int use_domination;
@@ -13,6 +18,7 @@ struct ButeOptions {
 };
 
 struct ButeResult {
+    int return_code;
     int treedepth;
     unsigned long long queries;
     unsigned long long helper_calls;
@@ -26,7 +32,7 @@ struct ButeGraph *bute_new_graph(unsigned n);
 
 struct ButeOptions bute_default_options();
 
-// returns a nonzero value if v==w or either vertex is out of range
+// returns BUTE_INVALID_EDGE if v==w or either vertex is out of range
 int bute_graph_add_edge(struct ButeGraph *G, unsigned v, unsigned w);
 
 int bute_graph_node_count(struct ButeGraph *G);

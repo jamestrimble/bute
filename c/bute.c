@@ -322,6 +322,7 @@ static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
         unsigned long long prev_helper_calls = bute->result.helper_calls;
         bool result = solve(bute, G, target, parent);
         if (result) {
+            bute->result.return_code = BUTE_OK;
             bute->result.treedepth = target;
             bute->result.last_decision_problem_helper_calls =
                     bute->result.helper_calls - prev_helper_calls;
@@ -350,7 +351,7 @@ struct ButeGraph *bute_new_graph(unsigned n)
 int bute_graph_add_edge(struct ButeGraph *G, unsigned v, unsigned w)
 {
     if (v == w || v >= G->n || w >= G->n)
-        return -1;
+        return BUTE_INVALID_EDGE;
     ADDONEEDGE(G->g, v, w, G->m);
     return 0;
 }
