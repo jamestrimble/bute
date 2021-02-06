@@ -38,8 +38,6 @@ void bute_bitset_addall(setword *vv, setword const *ww, int m);
 
 void bute_bitset_removeall(setword *vv, setword const *ww, int m);
 
-void bute_clear_bitset(setword *vv, int m);
-
 bool bute_bitset_is_empty(setword *vv, int m);
 
 int bute_popcount_of_union(setword const *vv, setword const *ww, int m);

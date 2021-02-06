@@ -77,12 +77,6 @@ void bute_bitset_removeall(setword *vv, setword const *ww, int m)
         vv[i] &= ~ww[i];
 }
 
-void bute_clear_bitset(setword *vv, int m)
-{
-    for (int i=0; i<m; i++)
-        vv[i] = 0;
-}
-
 bool bute_bitset_is_empty(setword *vv, int m)
 {
     for (int i=0; i<m; i++)
