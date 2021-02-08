@@ -59,7 +59,7 @@ void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute)
 
 static void trie_node_destroy(struct ButeTrie *trie, struct ButeTrieNode *node)
 {
-    for (int i=0; i<node->children_len; i++) {
+    for (unsigned i=0; i<node->children_len; i++) {
         trie_node_destroy(trie, &node->children[i]);
     }
     if (trie->m > SMALL_SET_SIZE) {
@@ -74,9 +74,9 @@ void bute_trie_destroy(struct ButeTrie *trie)
     free(trie->root);
 }
 
-static struct ButeTrieNode *trie_get_child_node(struct ButeTrie *trie, struct ButeTrieNode *node, int key)
+static struct ButeTrieNode *trie_get_child_node(struct ButeTrieNode *node, int key)
 {
-    for (int i=0; i<node->children_len; i++) {
+    for (unsigned i=0; i<node->children_len; i++) {
         if (node->children[i].key == key) {
             return &node->children[i];
         }
@@ -90,7 +90,7 @@ static void trie_get_all_almost_subsets_helper(struct ButeTrie *trie, struct But
     if (node->val != NO_VALUE) {
         arr_out[(*arr_out_len)++] = node->val;
     }
-    for (int i=0; i<node->children_len; i++) {
+    for (unsigned i=0; i<node->children_len; i++) {
         struct ButeTrieNode *child = &node->children[i];
         int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child->key);
         if (new_remaining_num_additions_permitted < 0 ||
@@ -127,7 +127,7 @@ void bute_trie_add_element(struct ButeTrie *trie, setword *key_bitset, setword *
     bute_bitset_intersect_with(SUBTREE_INTERSECTION(node), key_bitset, trie->m);
     bute_bitset_intersect_with(SUBTREE_INTERSECTION_OF_AUX_BITSETS(node), aux_bitset, trie->m);
     FOR_EACH_IN_BITSET(v, key_bitset, trie->m)
-        struct ButeTrieNode * child = trie_get_child_node(trie, node, v);
+        struct ButeTrieNode * child = trie_get_child_node(node, v);
         if (child) {
             node = child;
             bute_bitset_intersect_with(SUBTREE_INTERSECTION(node), key_bitset, trie->m);

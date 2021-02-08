@@ -94,7 +94,7 @@ static void try_adding_STS_root(struct Bute *bute, struct ButeGraph G, int w, se
 }
 
 static void filter_roots(struct Bute *bute, struct ButeGraph G, setword *new_possible_STS_roots,
-                  struct SetAndNeighbourhood **filtered_STSs, int filtered_STSs_len,
+                  struct SetAndNeighbourhood **filtered_STSs, size_t filtered_STSs_len,
                   setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth)
 {
     setword *new_big_union = bute_get_empty_bitset(bute);
@@ -240,7 +240,7 @@ static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *ST
 
 static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, struct ButeHashMap *set_root, setword *s, int parent_vertex)
 {
-    int v;
+    int v = -1;
     bute_hash_get_val(set_root, s, &v);
     parent[v] = parent_vertex;
     setword *vv_in_child_subtrees = bute_get_copy_of_bitset(bute, s);
@@ -262,7 +262,7 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
     struct SetAndNeighbourhoodVec STSs = {NULL, 0, 0};
 
     for (int root_depth=target; root_depth>=1; root_depth--) {
-        int prev_set_root_size = set_root.sz;
+        size_t prev_set_root_size = set_root.sz;
 //        printf("target %d  root depth %d\n", target, root_depth);
 //        printf(" %d\n", STSs_len);
 
@@ -317,7 +317,7 @@ static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
     if (G.n == 0) {
         return;
     }
-    for (int target=1 ; target<=G.n; target++) {
+    for (int target=1; target<=G.n; target++) {
 //        printf("target %d\n", target);
         unsigned long long prev_helper_calls = bute->result.helper_calls;
         bool result = solve(bute, G, target, parent);
@@ -350,7 +350,8 @@ struct ButeGraph *bute_new_graph(unsigned n)
 
 int bute_graph_add_edge(struct ButeGraph *G, unsigned v, unsigned w)
 {
-    if (v == w || v >= G->n || w >= G->n)
+    unsigned n = G->n;
+    if (v == w || v >= n || w >= n)
         return BUTE_INVALID_EDGE;
     ADDONEEDGE(G->g, v, w, G->m);
     return 0;

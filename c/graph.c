@@ -47,4 +47,3 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
     free(queue);
     return retval;
 }
-

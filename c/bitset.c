@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-static void set_first_k_bits(setword *bitset, int k)
+static void set_first_k_bits(setword *bitset, unsigned k)
 {
     int wordnum = 0;
     while (k >= WORDSIZE) {
