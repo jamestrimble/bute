@@ -2,7 +2,7 @@ all: bute bute.a
 
 OBJECTS := bitset.o bute.o bute_solver.o graph.o hash_map.o trie.o util.o
 BUTE_MAIN_C := bute_main.c
-CFLAGS = -std=c11 -O3 -march=native -flto -g -ggdb -Wall -Wextra -Wpedantic -Werror
+CFLAGS = -std=c11 -O3 -march=native -flto -g -ggdb -Wall -Wextra -Wpedantic -Werror -Werror=vla
 
 bute: $(OBJECTS) $(BUTE_MAIN_C)
 	${CC} -o $@ $(CFLAGS) $(OBJECTS) $(BUTE_MAIN_C)
