@@ -25,14 +25,6 @@ void bute_bitset_intersect_with(setword *vv, setword const *ww, int m)
         vv[i] &= ww[i];
 }
 
-int bute_popcount_of_set_difference(setword const *vv, setword const *ww, int m)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i] & ~ww[i]);
-    return count;
-}
-
 bool bute_intersection_is_empty(setword *vv, setword *ww, int m)
 {
     for (int i=0; i<m; i++)
