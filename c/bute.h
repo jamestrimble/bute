@@ -6,9 +6,7 @@ extern "C" {
 #endif
 
 #define BUTE_OK              0
-#define BUTE_OUT_OF_MEMORY   1
 #define BUTE_INVALID_EDGE    2
-#define BUTE_UNSAT         101
 
 struct ButeOptions {
     int use_trie;
@@ -18,7 +16,6 @@ struct ButeOptions {
 };
 
 struct ButeResult {
-    int return_code;
     int treedepth;
     unsigned long long queries;
     unsigned long long helper_calls;

@@ -143,10 +143,6 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
                 set_root, new_STSs, workspace);
     END_FOR_EACH_IN_BITSET
 
-    if (STSs_len == 0) {
-        return;
-    }
-
     struct ButeTrie trie;
     size_t *almost_subset_end_positions = NULL;
     bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
@@ -341,7 +337,6 @@ static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
         unsigned long long prev_helper_calls = bute->result.helper_calls;
         bool result = solve(bute, G, target, parent);
         if (result) {
-            bute->result.return_code = BUTE_OK;
             bute->result.treedepth = target;
             bute->result.last_decision_problem_helper_calls =
                     bute->result.helper_calls - prev_helper_calls;
@@ -373,7 +368,7 @@ int bute_graph_add_edge(struct ButeGraph *G, unsigned v, unsigned w)
     if (v == w || v >= n || w >= n)
         return BUTE_INVALID_EDGE;
     ADDONEEDGE(G->g, v, w, G->m);
-    return 0;
+    return BUTE_OK;
 }
 
 int bute_graph_node_count(struct ButeGraph *G)
