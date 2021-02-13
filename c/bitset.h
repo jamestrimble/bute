@@ -24,6 +24,8 @@
 
 void bute_clear_bitset(setword *bitset, int m);
 
+void bute_bitset_set_first_k_bits(setword *bitset, unsigned k);
+
 void bute_bitset_copy(setword *dest, setword const *src, int m);
 
 void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m);
@@ -61,27 +63,13 @@ int bute_popcount(setword const *vv, int m);
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
-/* We have a free-list of bitsets */
-
 struct ButeBitset
 {
     struct ButeBitset *next;
     setword bitset[];
 };
 
-struct Bute;
-
-struct ButeBitset *bute_get_Bitset(struct Bute *bute);
-
-setword *bute_get_bitset(struct Bute *bute);
-
-setword *bute_get_empty_bitset(struct Bute *bute);
-
-setword *bute_get_full_bitset(struct Bute *bute, int n);
-
-setword *bute_get_copy_of_bitset(struct Bute *bute, setword const *vv);
-
-void bute_free_bitset(setword *bitset);
+struct ButeBitset *bute_get_Bitset(int m);
 
 void bute_free_Bitsets(struct ButeBitset *b);
 

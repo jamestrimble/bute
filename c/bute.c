@@ -240,16 +240,18 @@ static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *ST
         STSs_pointers[i] = &STSs->vals[i];
     }
 
-    setword *empty_set = bute_get_empty_bitset(bute);
-    setword *full_set = bute_get_full_bitset(bute, G.n);
+    setword *bitsets = bute_xmalloc(2 * G.m * sizeof(setword));
+    setword *empty_set = bitsets;
+    setword *full_set = bitsets + G.m;
+    bute_clear_bitset(empty_set, G.m);
+    bute_bitset_set_first_k_bits(full_set, G.n);
 
     make_STSs_helper(0, STSs_pointers, STSs->len, bute, G, full_set, empty_set,
             empty_set, root_depth, set_root, &new_STSs);
-    bute_free_bitset(empty_set);
-    bute_free_bitset(full_set);
 
-    free(STSs_pointers);
     qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
+    free(bitsets);
+    free(STSs_pointers);
     return new_STSs;
 }
 
@@ -258,14 +260,13 @@ static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, stru
     int v = -1;
     bute_hash_get_val(set_root, s, &v);
     parent[v] = parent_vertex;
-    setword *vv_in_child_subtrees = bute_get_copy_of_bitset(bute, s);
-    DELELEMENT(vv_in_child_subtrees, v);
-    struct ButeBitset * components = bute_make_connected_components(vv_in_child_subtrees, G, bute);
+    DELELEMENT(s, v);   // temporarily remove root of subtree
+    struct ButeBitset * components = bute_make_connected_components(s, G);
     for (struct ButeBitset *component=components; component != NULL; component=component->next) {
         add_parents(bute, parent, G, set_root, component->bitset, v);
     }
     bute_free_Bitsets(components);
-    bute_free_bitset(vv_in_child_subtrees);
+    ADDELEMENT(s, v);   // restore root of subtree
 }
 
 static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent)

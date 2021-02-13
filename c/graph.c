@@ -11,11 +11,12 @@ struct ButeGraph bute_create_empty_graph(int n)
     return (struct ButeGraph) {g, n, m};
 }
 
-struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph G, struct Bute *bute)
+struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph G)
 {
     struct ButeBitset *retval = NULL;
-    setword *visited = bute_get_empty_bitset(bute);
-    setword *vv_in_prev_components = bute_get_empty_bitset(bute);
+    setword *bitsets = bute_xcalloc(2 * G.m, sizeof *bitsets);
+    setword *visited = bitsets;
+    setword *vv_in_prev_components = bitsets + G.m;
     int *queue = bute_xmalloc(G.n * sizeof *queue);
     FOR_EACH_IN_BITSET(v, vv, G.m)
         if (ISELEMENT(visited, v))
@@ -32,7 +33,7 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
                 }
             END_FOR_EACH_IN_BITSET
         }
-        struct ButeBitset *bitset = bute_get_Bitset(bute);
+        struct ButeBitset *bitset = bute_get_Bitset(G.m);
         bitset->next = retval;
         retval = bitset;
         setword *component = bitset->bitset;
@@ -42,8 +43,7 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
         bute_bitset_addall(vv_in_prev_components, visited, G.m);
     END_FOR_EACH_IN_BITSET
 
-    bute_free_bitset(vv_in_prev_components);
-    bute_free_bitset(visited);
+    free(bitsets);
     free(queue);
     return retval;
 }

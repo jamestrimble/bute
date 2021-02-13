@@ -51,10 +51,11 @@ void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute)
     trie->graph_n = n;
     trie->m = m;
     trie->bute = bute;
-    setword * full_bitset = bute_get_full_bitset(bute, trie->graph_n);
+    setword *full_bitset = bute_xmalloc(m * sizeof(setword));
+    bute_bitset_set_first_k_bits(full_bitset, trie->graph_n);
     trie->root = bute_xmalloc(sizeof(struct ButeTrieNode) + 2 * trie->m * sizeof(setword));
     trie_node_init(trie, trie->root, -1, full_bitset, full_bitset);
-    bute_free_bitset(full_bitset);
+    free(full_bitset);
 }
 
 static void trie_node_destroy(struct ButeTrie *trie, struct ButeTrieNode *node)

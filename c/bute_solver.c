@@ -5,13 +5,15 @@
 
 static void determine_domination(struct Bute *bute, struct ButeGraph G)
 {
+    setword *nd_of_v_and_v_and_w = bute_xmalloc(G.m * sizeof(setword));
+    setword *nd_of_w_and_v_and_w = bute_xmalloc(G.m * sizeof(setword));
     for (int v=0; v<G.n; v++) {
         for (int w=0; w<G.n; w++) {
             if (w != v) {
-                setword *nd_of_v_and_v_and_w = bute_get_copy_of_bitset(bute, GRAPHROW(G.g, v, G.m));
+                bute_bitset_copy(nd_of_v_and_v_and_w, GRAPHROW(G.g, v, G.m), G.m);
                 ADDELEMENT(nd_of_v_and_v_and_w, v);
                 ADDELEMENT(nd_of_v_and_v_and_w, w);
-                setword *nd_of_w_and_v_and_w = bute_get_copy_of_bitset(bute, GRAPHROW(G.g, w, G.m));
+                bute_bitset_copy(nd_of_w_and_v_and_w, GRAPHROW(G.g, w, G.m), G.m);
                 ADDELEMENT(nd_of_w_and_v_and_w, v);
                 ADDELEMENT(nd_of_w_and_v_and_w, w);
                 if (bute_bitset_is_superset(nd_of_w_and_v_and_w, nd_of_v_and_v_and_w, G.m)) {
@@ -23,11 +25,11 @@ static void determine_domination(struct Bute *bute, struct ButeGraph G)
                         }
                     }
                 }
-                bute_free_bitset(nd_of_w_and_v_and_w);
-                bute_free_bitset(nd_of_v_and_v_and_w);
             }
         }
     }
+    free(nd_of_w_and_v_and_w);
+    free(nd_of_v_and_v_and_w);
 }
 
 void Bute_init(struct Bute *bute, struct ButeGraph G, struct ButeOptions options)
@@ -40,9 +42,9 @@ void Bute_init(struct Bute *bute, struct ButeGraph G, struct ButeOptions options
     bute->vv_dominated_by = bute_xmalloc(G.n * sizeof *bute->vv_dominated_by);
     bute->vv_that_dominate = bute_xmalloc(G.n * sizeof *bute->vv_that_dominate);
     for (int v=0; v<G.n; v++) {
-        bute->adj_vv_dominated_by[v] = bute_get_empty_bitset(bute);
-        bute->vv_dominated_by[v] = bute_get_empty_bitset(bute);
-        bute->vv_that_dominate[v] = bute_get_empty_bitset(bute);
+        bute->adj_vv_dominated_by[v] = bute_xcalloc(G.m, sizeof(setword));
+        bute->vv_dominated_by[v] = bute_xcalloc(G.m, sizeof(setword));
+        bute->vv_that_dominate[v] = bute_xcalloc(G.m, sizeof(setword));
     }
     if (options.use_domination) {
         determine_domination(bute, G);
@@ -56,9 +58,9 @@ void Bute_init(struct Bute *bute, struct ButeGraph G, struct ButeOptions options
 void Bute_destroy(struct Bute *bute)
 {
     for (int i=0; i<bute->n; i++) {
-        bute_free_bitset(bute->adj_vv_dominated_by[i]);
-        bute_free_bitset(bute->vv_dominated_by[i]);
-        bute_free_bitset(bute->vv_that_dominate[i]);
+        free(bute->adj_vv_dominated_by[i]);
+        free(bute->vv_dominated_by[i]);
+        free(bute->vv_that_dominate[i]);
     }
     free(bute->adj_vv_dominated_by);
     free(bute->vv_dominated_by);

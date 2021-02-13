@@ -12,19 +12,7 @@ void bute_clear_bitset(setword *bitset, int m)
         bitset[i] = 0;
 }
 
-void bute_bitset_copy(setword *dest, setword const *src, int m)
-{
-    for (int i=0; i<m; i++)
-        dest[i] = src[i];
-}
-
-void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m)
-{
-    for (int i=0; i<m; i++)
-        dest[i] = src1[i] | src2[i];
-}
-
-static void set_first_k_bits(setword *bitset, unsigned k)
+void bute_bitset_set_first_k_bits(setword *bitset, unsigned k)
 {
     int wordnum = 0;
     while (k >= WORDSIZE) {
@@ -35,6 +23,18 @@ static void set_first_k_bits(setword *bitset, unsigned k)
     if (k) {
         bitset[wordnum] = (1ull << k) - 1;
     }
+}
+
+void bute_bitset_copy(setword *dest, setword const *src, int m)
+{
+    for (int i=0; i<m; i++)
+        dest[i] = src[i];
+}
+
+void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m)
+{
+    for (int i=0; i<m; i++)
+        dest[i] = src1[i] | src2[i];
 }
 
 void bute_bitset_intersect_with(setword *vv, setword const *ww, int m)
@@ -121,43 +121,9 @@ int bute_popcount(setword const *vv, int m)
     return count;
 }
 
-struct ButeBitset *bute_get_Bitset(struct Bute *bute)
+struct ButeBitset *bute_get_Bitset(int m)
 {
-    return bute_xmalloc(sizeof(struct ButeBitset) + bute->m * sizeof(setword));
-}
-
-setword *bute_get_bitset(struct Bute *bute)
-{
-    return bute_get_Bitset(bute)->bitset;
-}
-
-setword *bute_get_empty_bitset(struct Bute *bute)
-{
-    setword *b = bute_get_bitset(bute);
-    for (int i=0; i<bute->m; i++)
-        b[i] = 0;
-    return b;
-}
-
-setword *bute_get_full_bitset(struct Bute *bute, int n)
-{
-    setword *b = bute_get_bitset(bute);
-    set_first_k_bits(b, n);
-    return b;
-}
-
-setword *bute_get_copy_of_bitset(struct Bute *bute, setword const *vv)
-{
-    setword *b = bute_get_bitset(bute);
-    for (int i=0; i<bute->m; i++)
-        b[i] = vv[i];
-    return b;
-}
-
-void bute_free_bitset(setword *bitset)
-{
-    struct ButeBitset *b = (struct ButeBitset *)((char *) bitset - offsetof(struct ButeBitset, bitset));
-    free(b);
+    return bute_xmalloc(sizeof(struct ButeBitset) + m * sizeof(setword));
 }
 
 void bute_free_Bitsets(struct ButeBitset *b)
