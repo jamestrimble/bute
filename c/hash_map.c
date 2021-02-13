@@ -48,10 +48,10 @@ static unsigned hash(setword *x, int m)
 static void hash_grow(struct ButeHashMap *s)
 {
     // grow the table
-    if (s->M == SIZE_MAX) {
+    size_t new_M = new_vec_capacity(new_vec_capacity(s->M));
+    if (new_M == s->M) {
         return;
     }
-    size_t new_M = new_vec_capacity(new_vec_capacity(s->M));
 
     struct ButeHashChainElement **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
     for (size_t i=0; i<new_M; i++)

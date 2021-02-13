@@ -38,9 +38,9 @@ size_t new_vec_capacity(size_t old_capacity)
     if (old_capacity < 2) {
         return old_capacity + 1;
     }
-    if (old_capacity > SIZE_MAX - old_capacity / 2) {
+    if (old_capacity >= SIZE_MAX / 2) {
         // avoid overflow
-        return SIZE_MAX;
+        return old_capacity;
     }
     return old_capacity + old_capacity / 2;
 }
