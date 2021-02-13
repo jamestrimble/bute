@@ -42,8 +42,8 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
         bute_bitset_addall(vv_in_prev_components, visited, G.m);
     END_FOR_EACH_IN_BITSET
 
-    bute_free_bitset(bute, vv_in_prev_components);
-    bute_free_bitset(bute, visited);
+    bute_free_bitset(vv_in_prev_components);
+    bute_free_bitset(visited);
     free(queue);
     return retval;
 }

@@ -35,11 +35,11 @@ static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, stru
     vec->vals[vec->len++] = val;
 }
 
-static void SetAndNeighbourhoodVec_destroy(struct Bute *bute, struct SetAndNeighbourhoodVec *vec)
+static void SetAndNeighbourhoodVec_destroy(struct SetAndNeighbourhoodVec *vec)
 {
     for (size_t i=0; i<vec->len; i++) {
-        bute_free_bitset(bute, vec->vals[i].set);
-        bute_free_bitset(bute, vec->vals[i].nd);
+        // we don't need to free .nd, because .set and .nd were allocated together
+        free(vec->vals[i].set);
     }
     free(vec->vals);
 }
@@ -73,60 +73,71 @@ static int cmp_sorted_position(const void *a, const void *b) {
 
 static void try_adding_STS_root(struct Bute *bute, struct ButeGraph G, int w, setword *union_of_subtrees,
                          setword *nd_of_union_of_subtrees, int root_depth, struct ButeHashMap *set_root,
-                         struct SetAndNeighbourhoodVec *new_STSs)
+                         struct SetAndNeighbourhoodVec *new_STSs, setword *workspace)
 {
-    setword *adj_vv = bute_get_union_of_bitsets(bute, nd_of_union_of_subtrees, GRAPHROW(G.g, w, G.m));
+    setword *adj_vv = workspace;
+    bute_bitset_union(adj_vv, nd_of_union_of_subtrees, GRAPHROW(G.g, w, G.m), G.m);
     bute_bitset_removeall(adj_vv, union_of_subtrees, G.m);
     DELELEMENT(adj_vv, w);
     if (bute_popcount(adj_vv, G.m) < root_depth) {
-        setword *STS = bute_get_copy_of_bitset(bute, union_of_subtrees);
+        setword *STS = workspace + G.m;
+        bute_bitset_copy(STS, union_of_subtrees, G.m);
         ADDELEMENT(STS, w);
         if (bute_intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
             bute_intersection_is_empty(bute->vv_that_dominate[w], STS, G.m)) {
             if (bute_hash_add_or_update(set_root, STS, w, root_depth)) {
-                SetAndNeighbourhoodVec_push(new_STSs, (struct SetAndNeighbourhood)
-                        {bute_get_copy_of_bitset(bute, STS), bute_get_copy_of_bitset(bute, adj_vv), G.m});
+                setword *bitsets = bute_xmalloc(2 * G.m * sizeof(setword));
+                setword *set = bitsets;
+                setword *nd = bitsets + G.m;
+                bute_bitset_copy(set, STS, G.m);
+                bute_bitset_copy(nd, adj_vv, G.m);
+                SetAndNeighbourhoodVec_push(new_STSs, (struct SetAndNeighbourhood) {set, nd, G.m});
             }
         }
-        bute_free_bitset(bute, STS);
     }
-    bute_free_bitset(bute, adj_vv);
 }
 
 static void filter_roots(struct Bute *bute, struct ButeGraph G, setword *new_possible_STS_roots,
                   struct SetAndNeighbourhood **filtered_STSs, size_t filtered_STSs_len,
-                  setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth)
+                  setword *new_union_of_subtrees, setword *nd_of_new_union_of_subtrees, int root_depth,
+                  setword *workspace)
 {
-    setword *new_big_union = bute_get_empty_bitset(bute);
+    setword *new_big_union = workspace;
+    bute_clear_bitset(new_big_union, G.m);
     for (size_t i=0; i<filtered_STSs_len; i++) {
         bute_bitset_addall(new_big_union, filtered_STSs[i]->set, G.m);
     }
     FOR_EACH_IN_BITSET(v, new_possible_STS_roots, G.m)
-        setword *adj_vv = bute_get_union_of_bitsets(bute, nd_of_new_union_of_subtrees, GRAPHROW(G.g, v, G.m));
-            bute_bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
+        setword *adj_vv = workspace + G.m;
+        bute_bitset_union(adj_vv, nd_of_new_union_of_subtrees, GRAPHROW(G.g, v, G.m), G.m);
+        bute_bitset_removeall(adj_vv, new_union_of_subtrees, G.m);
         DELELEMENT(adj_vv, v);
-            bute_bitset_removeall(adj_vv, new_big_union, G.m);
+        bute_bitset_removeall(adj_vv, new_big_union, G.m);
         if (bute_popcount(adj_vv, G.m) >= root_depth || !bute_bitset_union_is_superset(new_big_union, new_union_of_subtrees,
                                                                                        bute->adj_vv_dominated_by[v], G.m)) {
             DELELEMENT(new_possible_STS_roots, v);
         }
-            bute_free_bitset(bute, adj_vv);
     END_FOR_EACH_IN_BITSET
-    bute_free_bitset(bute, new_big_union);
 }
 
 // if filtered_STSs_len is small, use a simple filtering algorithm to
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 1000
 
-static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
+static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_t STSs_len,
                              struct Bute *bute, struct ButeGraph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
                              int root_depth, struct ButeHashMap *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
     ++bute->result.helper_calls;
+
+    if (!bute->workspaces[depth]) {
+        bute->workspaces[depth] = bute_xmalloc(6 * G.m * sizeof(setword));
+    }
+    setword *workspace = bute->workspaces[depth];
+
     FOR_EACH_IN_BITSET(w, possible_STS_roots, G.m)
         try_adding_STS_root(bute, G, w, union_of_subtrees, nd_of_union_of_subtrees, root_depth,
-                set_root, new_STSs);
+                set_root, new_STSs, workspace);
     END_FOR_EACH_IN_BITSET
 
     if (STSs_len == 0) {
@@ -134,7 +145,7 @@ static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
     }
 
     struct ButeTrie trie;
-    size_t *almost_subset_end_positions;
+    size_t *almost_subset_end_positions = NULL;
     bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
     if (use_trie) {
         bute_trie_init(&trie, G.n, G.m, bute);
@@ -147,16 +158,18 @@ static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         setword *s = STSs[i]->set;
         setword *nd = STSs[i]->nd;
         int nd_popcount = bute_popcount(nd, G.m);
-        setword *new_possible_STS_roots = bute_get_copy_of_bitset(bute, possible_STS_roots);
+        setword *new_possible_STS_roots = workspace;
+        bute_bitset_copy(new_possible_STS_roots, possible_STS_roots, G.m);
         bute_bitset_intersect_with(new_possible_STS_roots, nd, G.m);
-        setword *new_union_of_subtrees = bute_get_union_of_bitsets(bute, union_of_subtrees, s);
+        setword *new_union_of_subtrees = workspace + G.m;
+        bute_bitset_union(new_union_of_subtrees, union_of_subtrees, s, G.m);
 
-        setword *nd_of_new_union_of_subtrees = bute_get_union_of_bitsets(bute, nd_of_union_of_subtrees, nd);
+        setword *nd_of_new_union_of_subtrees = workspace + G.m * 2;
+        bute_bitset_union(nd_of_new_union_of_subtrees, nd_of_union_of_subtrees, nd, G.m);
         bute_bitset_removeall(nd_of_new_union_of_subtrees, new_union_of_subtrees, G.m);
 
-        setword *new_union_of_subtrees_and_nd = bute_get_union_of_bitsets(bute,
-                                                                          new_union_of_subtrees,
-                                                                          nd_of_new_union_of_subtrees);
+        setword *new_union_of_subtrees_and_nd = workspace + G.m * 3;
+        bute_bitset_union(new_union_of_subtrees_and_nd, new_union_of_subtrees, nd_of_new_union_of_subtrees, G.m);
 
         struct SetAndNeighbourhood **candidates;
         size_t candidates_len = 0;
@@ -197,19 +210,14 @@ static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         }
 
         filter_roots(bute, G, new_possible_STS_roots, filtered_STSs, filtered_STSs_len,
-                new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth);
+                new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, workspace + 4 * G.m);
 
         if (!bute_bitset_is_empty(new_possible_STS_roots, G.m)) {
             qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
-            make_STSs_helper(filtered_STSs, filtered_STSs_len, bute, G,
+            make_STSs_helper(depth+1, filtered_STSs, filtered_STSs_len, bute, G,
                     new_possible_STS_roots, new_union_of_subtrees,
                     nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs);
         }
-
-        bute_free_bitset(bute, new_union_of_subtrees_and_nd);
-        bute_free_bitset(bute, nd_of_new_union_of_subtrees);
-        bute_free_bitset(bute, new_possible_STS_roots);
-        bute_free_bitset(bute, new_union_of_subtrees);
 
         if (use_trie && root_depth > nd_popcount) {
             bute_trie_add_element(&trie, nd, s, i);
@@ -235,10 +243,10 @@ static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *ST
     setword *empty_set = bute_get_empty_bitset(bute);
     setword *full_set = bute_get_full_bitset(bute, G.n);
 
-    make_STSs_helper(STSs_pointers, STSs->len, bute, G, full_set, empty_set,
+    make_STSs_helper(0, STSs_pointers, STSs->len, bute, G, full_set, empty_set,
             empty_set, root_depth, set_root, &new_STSs);
-    bute_free_bitset(bute, empty_set);
-    bute_free_bitset(bute, full_set);
+    bute_free_bitset(empty_set);
+    bute_free_bitset(full_set);
 
     free(STSs_pointers);
     qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
@@ -256,8 +264,8 @@ static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, stru
     for (struct ButeBitset *component=components; component != NULL; component=component->next) {
         add_parents(bute, parent, G, set_root, component->bitset, v);
     }
-    bute_free_Bitsets(bute, components);
-    bute_free_bitset(bute, vv_in_child_subtrees);
+    bute_free_Bitsets(components);
+    bute_free_bitset(vv_in_child_subtrees);
 }
 
 static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent)
@@ -274,7 +282,7 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
 //        printf(" %d\n", STSs_len);
 
         struct SetAndNeighbourhoodVec new_STSs = make_STSs(&STSs, bute, G, root_depth, &set_root);
-        SetAndNeighbourhoodVec_destroy(bute, &STSs);
+        SetAndNeighbourhoodVec_destroy(&STSs);
         STSs = new_STSs;
         if (set_root.sz == prev_set_root_size) {
             break;
@@ -314,7 +322,7 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
         }
     }
     
-    SetAndNeighbourhoodVec_destroy(bute, &STSs);
+    SetAndNeighbourhoodVec_destroy(&STSs);
     bute_hash_destroy(&set_root);
     return retval;
 }

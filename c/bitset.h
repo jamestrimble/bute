@@ -22,6 +22,12 @@
 #define ADDONEEDGE(g, v, w, m) {ADDELEMENT(GRAPHROW(g, v, m), w); ADDELEMENT(GRAPHROW(g, w, m), v);}
 #define SETWORDSNEEDED(n) ((n + (WORDSIZE-1)) / WORDSIZE)
 
+void bute_clear_bitset(setword *bitset, int m);
+
+void bute_bitset_copy(setword *dest, setword const *src, int m);
+
+void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m);
+
 void bute_bitset_intersect_with(setword *vv, setword const *ww, int m);
 
 bool bute_intersection_is_empty(setword *vv, setword *ww, int m);
@@ -75,14 +81,8 @@ setword *bute_get_full_bitset(struct Bute *bute, int n);
 
 setword *bute_get_copy_of_bitset(struct Bute *bute, setword const *vv);
 
-setword *bute_get_union_of_bitsets(struct Bute *bute, setword const *vv, setword const *ww);
+void bute_free_bitset(setword *bitset);
 
-void bute_free_Bitset(struct Bute *bute, struct ButeBitset *b);
-
-void bute_free_bitset(struct Bute *bute, setword *bitset);
-
-void bute_free_Bitsets(struct Bute *bute, struct ButeBitset *b);
-
-void bute_deallocate_Bitsets(struct Bute *bute);
+void bute_free_Bitsets(struct ButeBitset *b);
 
 #endif
