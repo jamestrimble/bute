@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 struct SetAndNeighbourhood
@@ -28,7 +29,6 @@ struct SetAndNeighbourhoodVec
 static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetAndNeighbourhood val)
 {
     if (vec->len == SIZE_MAX) {
-        // TODO return a code
         exit(1);
     }
     if (vec->len == vec->capacity) {
