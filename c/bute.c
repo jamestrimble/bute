@@ -261,11 +261,11 @@ static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, stru
     bute_hash_get_val(set_root, s, &v);
     parent[v] = parent_vertex;
     DELELEMENT(s, v);   // temporarily remove root of subtree
-    struct ButeBitset * components = bute_make_connected_components(s, G);
-    for (struct ButeBitset *component=components; component != NULL; component=component->next) {
+    struct ButeBitsetListNode * components = bute_make_connected_components(s, G);
+    for (struct ButeBitsetListNode *component=components; component != NULL; component=component->next) {
         add_parents(bute, parent, G, set_root, component->bitset, v);
     }
-    bute_free_Bitsets(components);
+    bute_free_list_of_bitsets(components);
     ADDELEMENT(s, v);   // restore root of subtree
 }
 

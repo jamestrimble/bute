@@ -121,15 +121,15 @@ int bute_popcount(setword const *vv, int m)
     return count;
 }
 
-struct ButeBitset *bute_get_Bitset(int m)
+struct ButeBitsetListNode *bute_get_Bitset(int m)
 {
-    return bute_xmalloc(sizeof(struct ButeBitset) + m * sizeof(setword));
+    return bute_xmalloc(sizeof(struct ButeBitsetListNode) + m * sizeof(setword));
 }
 
-void bute_free_Bitsets(struct ButeBitset *b)
+void bute_free_list_of_bitsets(struct ButeBitsetListNode *b)
 {
     while (b) {
-        struct ButeBitset *next_to_free = b->next;
+        struct ButeBitsetListNode *next_to_free = b->next;
         free(b);
         b = next_to_free;
     }

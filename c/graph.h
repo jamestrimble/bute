@@ -13,6 +13,6 @@ struct ButeGraph
 struct ButeGraph bute_create_empty_graph(int n);
 
 // Returns a pointer to the first bitset in a linked list
-struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph G);
+struct ButeBitsetListNode *bute_make_connected_components(setword *vv, struct ButeGraph G);
 
 #endif

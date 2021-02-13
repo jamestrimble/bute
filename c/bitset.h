@@ -63,14 +63,14 @@ int bute_popcount(setword const *vv, int m);
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
-struct ButeBitset
+struct ButeBitsetListNode
 {
-    struct ButeBitset *next;
+    struct ButeBitsetListNode *next;
     setword bitset[];
 };
 
-struct ButeBitset *bute_get_Bitset(int m);
+struct ButeBitsetListNode *bute_get_Bitset(int m);
 
-void bute_free_Bitsets(struct ButeBitset *b);
+void bute_free_list_of_bitsets(struct ButeBitsetListNode *b);
 
 #endif

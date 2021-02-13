@@ -11,9 +11,9 @@ struct ButeGraph bute_create_empty_graph(int n)
     return (struct ButeGraph) {g, n, m};
 }
 
-struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph G)
+struct ButeBitsetListNode *bute_make_connected_components(setword *vv, struct ButeGraph G)
 {
-    struct ButeBitset *retval = NULL;
+    struct ButeBitsetListNode *retval = NULL;
     setword *bitsets = bute_xcalloc(2 * G.m, sizeof *bitsets);
     setword *visited = bitsets;
     setword *vv_in_prev_components = bitsets + G.m;
@@ -33,7 +33,7 @@ struct ButeBitset *bute_make_connected_components(setword *vv, struct ButeGraph 
                 }
             END_FOR_EACH_IN_BITSET
         }
-        struct ButeBitset *bitset = bute_get_Bitset(G.m);
+        struct ButeBitsetListNode *bitset = bute_get_Bitset(G.m);
         bitset->next = retval;
         retval = bitset;
         setword *component = bitset->bitset;
