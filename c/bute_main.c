@@ -61,22 +61,17 @@ int main(int argc, char *argv[])
     int *parent = malloc(bute_graph_node_count(G) * sizeof *parent);
 
     struct ButeResult result = bute_optimise(G, &options, parent);
+    int treedepth = result.treedepth;
 
-    if (result.return_code == BUTE_OK) {
-        int treedepth = result.treedepth;
-
-        if (options.print_stats) {
-            printf("# queries %llu\n", result.queries);
-            printf("# helperCalls %llu\n", result.helper_calls);
-            printf("# lastDecisionProblemHelperCalls %llu\n", result.last_decision_problem_helper_calls);
-            printf("# setCount %llu\n", result.set_count);
-        }
-        printf("%d\n", treedepth);
-        for (int i=0; i < bute_graph_node_count(G); i++) {
-            printf("%d\n", parent[i] + 1);
-        }
-    } else {
-        printf("%s: error %d\n", argv[0], result.return_code);
+    if (options.print_stats) {
+        printf("# queries %llu\n", result.queries);
+        printf("# helperCalls %llu\n", result.helper_calls);
+        printf("# lastDecisionProblemHelperCalls %llu\n", result.last_decision_problem_helper_calls);
+        printf("# setCount %llu\n", result.set_count);
+    }
+    printf("%d\n", treedepth);
+    for (int i=0; i < bute_graph_node_count(G); i++) {
+        printf("%d\n", parent[i] + 1);
     }
 
     bute_free_graph(G);
