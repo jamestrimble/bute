@@ -129,11 +129,17 @@ static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
                 set_root, new_STSs);
     END_FOR_EACH_IN_BITSET
 
+    if (STSs_len == 0) {
+        return;
+    }
+
     struct ButeTrie trie;
+    size_t *almost_subset_end_positions;
     bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
-    if (use_trie)
+    if (use_trie) {
         bute_trie_init(&trie, G.n, G.m, bute);
-    size_t *almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
+        almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
+    }
 
     struct SetAndNeighbourhood **filtered_STSs = bute_xmalloc(STSs_len * sizeof *filtered_STSs);
 
@@ -210,9 +216,10 @@ static void make_STSs_helper(struct SetAndNeighbourhood **STSs, size_t STSs_len,
         }
     }
     free(filtered_STSs);
-    if (use_trie)
+    if (use_trie) {
         bute_trie_destroy(&trie);
-    free(almost_subset_end_positions);
+        free(almost_subset_end_positions);
+    }
 }
 
 static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct ButeGraph G,
