@@ -143,10 +143,6 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
                 set_root, new_STSs, workspace);
     END_FOR_EACH_IN_BITSET
 
-    if (STSs_len == 0) {
-        return;
-    }
-
     struct ButeTrie trie;
     size_t *almost_subset_end_positions = NULL;
     bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
@@ -233,29 +229,33 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
     }
 }
 
-static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct ButeGraph G,
-        int root_depth, struct ButeHashMap *set_root)
+static int make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct ButeGraph G,
+        int root_depth, struct ButeHashMap *set_root, struct SetAndNeighbourhoodVec *new_STSs)
 {
-    struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
-
+    int rc = BUTE_OK;
+    setword *bitsets = bute_xmalloc(2 * G.m * sizeof(setword));
     struct SetAndNeighbourhood **STSs_pointers = bute_xmalloc(STSs->len * sizeof *STSs_pointers);
+    if (!bitsets || !STSs_pointers) {
+        rc = BUTE_OUT_OF_MEMORY;
+        goto cleanup_make_STSs;
+    }
     for (size_t i=0; i<STSs->len; i++) {
         STSs_pointers[i] = &STSs->vals[i];
     }
 
-    setword *bitsets = bute_xmalloc(2 * G.m * sizeof(setword));
     setword *empty_set = bitsets;
     setword *full_set = bitsets + G.m;
     bute_clear_bitset(empty_set, G.m);
     bute_bitset_set_first_k_bits(full_set, G.n);
 
     make_STSs_helper(0, STSs_pointers, STSs->len, bute, G, full_set, empty_set,
-            empty_set, root_depth, set_root, &new_STSs);
+            empty_set, root_depth, set_root, new_STSs);
 
-    qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
+    qsort(new_STSs->vals, new_STSs->len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
+cleanup_make_STSs:
     free(bitsets);
     free(STSs_pointers);
-    return new_STSs;
+    return rc;
 }
 
 static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, struct ButeHashMap *set_root, setword *s, int parent_vertex)
@@ -272,9 +272,18 @@ static void add_parents(struct Bute *bute, int *parent, struct ButeGraph G, stru
     ADDELEMENT(s, v);   // restore root of subtree
 }
 
-static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent)
+static int total_size(struct SetAndNeighbourhoodVec *STSs, int m)
 {
-    bool retval = false;
+    int result = 0;
+    for (size_t i=0; i<STSs->len; i++) {
+        result += bute_popcount(STSs->vals[i].set, m);
+    }
+    return result;
+}
+
+static int solve(struct Bute *bute, struct ButeGraph G, int target, int *parent)
+{
+    int rc = BUTE_OK;
     struct ButeHashMap set_root;
     bute_hash_init(&set_root, bute);
 
@@ -285,9 +294,13 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
 //        printf("target %d  root depth %d\n", target, root_depth);
 //        printf(" %d\n", STSs_len);
 
-        struct SetAndNeighbourhoodVec new_STSs = make_STSs(&STSs, bute, G, root_depth, &set_root);
+        struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
+        rc = make_STSs(&STSs, bute, G, root_depth, &set_root, &new_STSs);
         SetAndNeighbourhoodVec_destroy(&STSs);
         STSs = new_STSs;
+        if (rc) {
+            goto cleanup_solve;
+        }
         if (set_root.sz == prev_set_root_size) {
             break;
         }
@@ -295,40 +308,32 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
         bute->result.set_count += set_root.sz - prev_set_root_size;
 
         if (root_depth == 1) {
-            int total_size = 0;
-            for (size_t i=0; i<STSs.len; i++) {
-                total_size += bute_popcount(STSs.vals[i].set, G.m);
-            }
-            if (total_size == G.n) {
-                retval = true;
+            if (total_size(&STSs, G.m) == G.n) {
                 for (size_t i=0; i<STSs.len; i++) {
                     add_parents(bute, parent, G, &set_root, STSs.vals[i].set, -1);
                 }
+                goto cleanup_solve;
             }
         } else if (bute->options.use_top_chain) {
             for (size_t i=0; i<STSs.len; i++) {
-                if (!retval && bute_popcount(STSs.vals[i].set, G.m) + bute_popcount(STSs.vals[i].nd, G.m) == G.n) {
-                    retval = true;
+                if (bute_popcount(STSs.vals[i].set, G.m) + bute_popcount(STSs.vals[i].nd, G.m) == G.n) {
                     int parent_vertex = -1;
                     FOR_EACH_IN_BITSET(w, STSs.vals[i].nd, G.m)
                         parent[w] = parent_vertex;
                         parent_vertex = w;
                     END_FOR_EACH_IN_BITSET
                     add_parents(bute, parent, G, &set_root, STSs.vals[i].set, parent_vertex);
-                }
-                if (retval) {
-                    break;
+                    goto cleanup_solve;
                 }
             }
         }
-        if (retval) {
-            break;
-        }
     }
+    rc = BUTE_UNSAT;
     
+cleanup_solve:
     SetAndNeighbourhoodVec_destroy(&STSs);
     bute_hash_destroy(&set_root);
-    return retval;
+    return rc;
 }
 
 static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
@@ -339,12 +344,15 @@ static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
     for (int target=1; target<=G.n; target++) {
 //        printf("target %d\n", target);
         unsigned long long prev_helper_calls = bute->result.helper_calls;
-        bool result = solve(bute, G, target, parent);
-        if (result) {
+        int result = solve(bute, G, target, parent);
+        if (result == BUTE_OK) {
             bute->result.return_code = BUTE_OK;
             bute->result.treedepth = target;
             bute->result.last_decision_problem_helper_calls =
                     bute->result.helper_calls - prev_helper_calls;
+            return;
+        } else if (result != BUTE_UNSAT) {
+            bute->result.return_code = result;
             return;
         }
     }
