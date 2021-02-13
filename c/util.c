@@ -12,7 +12,7 @@ static void bute_fail()
 void *bute_xmalloc(size_t size)
 {
     void *result = malloc(size);
-    if (!result)
+    if (!result && size)
         bute_fail();
     return result;
 }
@@ -20,7 +20,7 @@ void *bute_xmalloc(size_t size)
 void *bute_xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
-    if (!result)
+    if (!result && nmemb)
         bute_fail();
     return result;
 }
@@ -28,7 +28,7 @@ void *bute_xcalloc(size_t nmemb, size_t size)
 void *bute_xrealloc(void *ptr, size_t size)
 {
     void *result = realloc(ptr, size);
-    if (!result)
+    if (!result && size)
         bute_fail();
     return result;
 }
