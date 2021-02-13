@@ -29,7 +29,7 @@ static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, stru
     if (vec->len == vec->capacity) {
         vec->capacity = vec->capacity == 0 ? 1 :
                         vec->capacity == 1 ? 2 :
-                        vec->capacity + vec->capacity / 2 + 1;
+                        vec->capacity + vec->capacity / 2;
         vec->vals = bute_xrealloc(vec->vals, vec->capacity * sizeof *vec->vals);
     }
     vec->vals[vec->len++] = val;
