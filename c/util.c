@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 static void bute_fail()
@@ -34,5 +35,12 @@ void *bute_xrealloc(void *ptr, size_t size)
 
 size_t new_vec_capacity(size_t old_capacity)
 {
-    return old_capacity < 2 ? old_capacity + 1 : old_capacity + old_capacity / 2;
+    if (old_capacity < 2) {
+        return old_capacity + 1;
+    }
+    if (old_capacity > SIZE_MAX - old_capacity / 2) {
+        // avoid overflow
+        return SIZE_MAX;
+    }
+    return old_capacity + old_capacity / 2;
 }

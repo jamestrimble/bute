@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "hash_map.h"
@@ -46,9 +47,11 @@ static unsigned hash(setword *x, int m)
 
 static void hash_grow(struct ButeHashMap *s)
 {
-//    printf("growing from %d to %d\n", s->M, s->M * 2);
     // grow the table
-    size_t new_M = s->M * 2 + 1;
+    if (s->M == SIZE_MAX) {
+        return;
+    }
+    size_t new_M = new_vec_capacity(new_vec_capacity(s->M));
 
     struct ButeHashChainElement **new_chain_heads = bute_xmalloc(new_M * sizeof *new_chain_heads);
     for (size_t i=0; i<new_M; i++)

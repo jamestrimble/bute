@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 struct SetAndNeighbourhood
@@ -26,6 +27,10 @@ struct SetAndNeighbourhoodVec
 
 static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetAndNeighbourhood val)
 {
+    if (vec->len == SIZE_MAX) {
+        // TODO return a code
+        exit(1);
+    }
     if (vec->len == vec->capacity) {
         vec->capacity = new_vec_capacity(vec->capacity);
         vec->vals = bute_xrealloc(vec->vals, vec->capacity * sizeof *vec->vals);
