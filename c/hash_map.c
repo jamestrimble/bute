@@ -48,7 +48,7 @@ static unsigned hash(setword *x, int m)
 static void hash_grow(struct ButeHashMap *s)
 {
     // grow the table
-    size_t new_M = new_vec_capacity(s->M);
+    size_t new_M = new_vec_capacity(s->M) + 1;
     if (new_M == s->M) {
         return;
     }
