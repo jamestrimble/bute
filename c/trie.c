@@ -129,9 +129,7 @@ void bute_trie_get_all_almost_subsets(struct ButeTrie *trie, setword *set, setwo
 static struct ButeTrieNode *trie_node_add_child(struct ButeTrieNode *node)
 {
     if (node->children_len == node->children_capacity) {
-        node->children_capacity = node->children_capacity == 0 ? 1 :
-                                  node->children_capacity == 1 ? 2 :
-                                  node->children_capacity + node->children_capacity / 2;
+        node->children_capacity = new_vec_capacity(node->children_capacity);
         node->children = bute_xrealloc(node->children, node->children_capacity * sizeof(struct ButeTrieNode));
     }
     ++node->children_len;

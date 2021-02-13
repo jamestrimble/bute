@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-void bute_fail()
+static void bute_fail()
 {
     fprintf(stderr, "Out of memory.\n");
     abort();
@@ -30,4 +30,9 @@ void *bute_xrealloc(void *ptr, size_t size)
     if (!result)
         bute_fail();
     return result;
+}
+
+size_t new_vec_capacity(size_t old_capacity)
+{
+    return old_capacity < 2 ? old_capacity + 1 : old_capacity + old_capacity / 2;
 }
