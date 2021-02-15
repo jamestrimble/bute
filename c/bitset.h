@@ -22,36 +22,6 @@
 #define ADDONEEDGE(g, v, w, m) {ADDELEMENT(GRAPHROW(g, v, m), w); ADDELEMENT(GRAPHROW(g, w, m), v);}
 #define SETWORDSNEEDED(n) ((n + (WORDSIZE-1)) / WORDSIZE)
 
-void bute_clear_bitset(setword *bitset, int m);
-
-void bute_bitset_set_first_k_bits(setword *bitset, unsigned k);
-
-void bute_bitset_copy(setword *dest, setword const *src, int m);
-
-void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m);
-
-void bute_bitset_intersect_with(setword *vv, setword const *ww, int m);
-
-bool bute_intersection_is_empty(setword *vv, setword *ww, int m);
-
-bool bute_bitset_equals(setword *vv, setword *ww, int m);
-
-bool bute_bitset_is_superset(setword *vv, setword *ww, int m);
-
-bool bute_bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m);
-
-void bute_bitset_addall(setword *vv, setword const *ww, int m);
-
-void bute_bitset_removeall(setword *vv, setword const *ww, int m);
-
-bool bute_bitset_is_empty(setword *vv, int m);
-
-int bute_popcount_of_union(setword const *vv, setword const *ww, int m);
-
-int bute_bitset_compare(setword const *vv, setword const *ww, int m);
-
-int bute_popcount(setword const *vv, int m);
-
 //https://stackoverflow.com/a/10380191/3347737
 #define PASTE_HELPER(a,b) a ## b
 #define PASTE(a,b) PASTE_HELPER(a,b)
@@ -63,6 +33,8 @@ int bute_popcount(setword const *vv, int m);
            FOR_EACH_IN_BITSET_HELPER(v, bitset, m, PASTE(i,__LINE__), PASTE(sw,__LINE__), PASTE(x,__LINE__))
 #define END_FOR_EACH_IN_BITSET }}
 
+void bute_bitset_set_first_k_bits(setword *bitset, unsigned k);
+
 struct ButeBitsetListNode
 {
     struct ButeBitsetListNode *next;
@@ -72,5 +44,115 @@ struct ButeBitsetListNode
 struct ButeBitsetListNode *bute_get_Bitset(int m);
 
 void bute_free_list_of_bitsets(struct ButeBitsetListNode *b);
+
+static inline void bute_clear_bitset(setword *bitset, int m)
+{
+    for (int i=0; i<m; i++)
+        bitset[i] = 0;
+}
+
+static inline void bute_bitset_copy(setword *dest, setword const *src, int m)
+{
+    for (int i=0; i<m; i++)
+        dest[i] = src[i];
+}
+
+static inline void bute_bitset_union(setword *dest, setword const *src1, setword const *src2, int m)
+{
+    for (int i=0; i<m; i++)
+        dest[i] = src1[i] | src2[i];
+}
+
+static inline void bute_bitset_intersect_with(setword *vv, setword const *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        vv[i] &= ww[i];
+}
+
+static inline bool bute_intersection_is_empty(setword *vv, setword *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i] & ww[i])
+            return false;
+    return true;
+}
+
+static inline bool bute_bitset_equals(setword *vv, setword *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i] != ww[i])
+            return false;
+    return true;
+}
+
+static inline bool bute_bitset_is_superset(setword *vv, setword *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        if (ww[i] & ~vv[i])
+            return false;
+    return true;
+}
+
+static inline bool bute_bitset_union_is_superset(setword *vv, setword *uu, setword *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        if (ww[i] & ~(vv[i] | uu[i]))
+            return false;
+    return true;
+}
+
+static inline void bute_bitset_addall(setword *vv, setword const *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        vv[i] |= ww[i];
+}
+
+static inline void bute_bitset_removeall(setword *vv, setword const *ww, int m)
+{
+    for (int i=0; i<m; i++)
+        vv[i] &= ~ww[i];
+}
+
+static inline bool bute_bitset_is_empty(setword *vv, int m)
+{
+    for (int i=0; i<m; i++)
+        if (vv[i])
+            return false;
+    return true;
+}
+
+static inline int bute_popcount_of_union(setword const *vv, setword const *ww, int m)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i] | ww[i]);
+    return count;
+}
+
+static inline int bute_popcount_of_set_difference(setword const *vv, setword const *ww, int m)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i] & ~ww[i]);
+    return count;
+}
+
+static inline int bute_bitset_compare(setword const *vv, setword const *ww, int m)
+{
+    for (int i=m; i--; ) {
+        if (vv[i] != ww[i]) {
+            return vv[i] < ww[i] ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+static inline int bute_popcount(setword const *vv, int m)
+{
+    int count = 0;
+    for (int i=0; i<m; i++)
+        count += POPCOUNT(vv[i]);
+    return count;
+}
 
 #endif

@@ -85,22 +85,6 @@ static struct ButeTrieNode *trie_get_child_node(struct ButeTrieNode *node, int k
     return NULL;
 }
 
-static bool intersects(setword *vv, setword *ww, int m)
-{
-    for (int i=0; i<m; i++)
-        if (vv[i] & ww[i])
-            return true;
-    return false;
-}
-
-static int popcount_of_set_difference(setword const *vv, setword const *ww, int m)
-{
-    int count = 0;
-    for (int i=0; i<m; i++)
-        count += POPCOUNT(vv[i] & ~ww[i]);
-    return count;
-}
-
 static void trie_get_all_almost_subsets_helper(struct ButeTrie *trie, struct ButeTrieNode *node, setword *set,
                                         setword *aux_set, int num_additions_permitted, int remaining_num_additions_permitted, size_t *arr_out, size_t *arr_out_len)
 {
@@ -111,8 +95,8 @@ static void trie_get_all_almost_subsets_helper(struct ButeTrie *trie, struct But
         struct ButeTrieNode *child = &node->children[i];
         int new_remaining_num_additions_permitted = remaining_num_additions_permitted - !ISELEMENT(set, child->key);
         if (new_remaining_num_additions_permitted < 0 ||
-                intersects(aux_set, SUBTREE_INTERSECTION_OF_AUX_BITSETS(child), trie->m) ||
-                popcount_of_set_difference(SUBTREE_INTERSECTION(child), set, trie->m) > num_additions_permitted) {
+                !bute_intersection_is_empty(aux_set, SUBTREE_INTERSECTION_OF_AUX_BITSETS(child), trie->m) ||
+                bute_popcount_of_set_difference(SUBTREE_INTERSECTION(child), set, trie->m) > num_additions_permitted) {
             continue;
         }
         trie_get_all_almost_subsets_helper(trie, child, set, aux_set, num_additions_permitted,
