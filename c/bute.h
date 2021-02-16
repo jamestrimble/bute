@@ -13,6 +13,7 @@ struct ButeOptions {
     int use_domination;
     int use_top_chain;
     int print_stats;
+    int upper_bound;
 };
 
 struct ButeResult {

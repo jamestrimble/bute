@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
             options.use_top_chain = 0;
         } else if (!strcmp(argv[i], "--print-stats")) {
             options.print_stats = 1;
+        } else if (!strcmp(argv[i], "--upper-bound")) {
+            ++i;
+            options.upper_bound = atoi(argv[i]);
         }
     }
     struct ButeGraph *G = read_graph_from_stdin();
@@ -61,7 +64,6 @@ int main(int argc, char *argv[])
     int *parent = malloc(bute_graph_node_count(G) * sizeof *parent);
 
     struct ButeResult result = bute_optimise(G, &options, parent);
-    int treedepth = result.treedepth;
 
     if (options.print_stats) {
         printf("# queries %llu\n", result.queries);
@@ -69,9 +71,11 @@ int main(int argc, char *argv[])
         printf("# lastDecisionProblemHelperCalls %llu\n", result.last_decision_problem_helper_calls);
         printf("# setCount %llu\n", result.set_count);
     }
-    printf("%d\n", treedepth);
-    for (int i=0; i < bute_graph_node_count(G); i++) {
-        printf("%d\n", parent[i] + 1);
+    printf("%d\n", result.treedepth);
+    if (result.treedepth != options.upper_bound) {
+        for (int i=0; i < bute_graph_node_count(G); i++) {
+            printf("%d\n", parent[i] + 1);
+        }
     }
 
     bute_free_graph(G);

@@ -332,17 +332,20 @@ static void optimise(struct ButeGraph G, int *parent, struct Bute *bute)
     if (G.n == 0) {
         return;
     }
-    for (int target=1; target<=G.n; target++) {
-//        printf("target %d\n", target);
+    int target = 1;
+    for ( ; target<=G.n; target++) {
+        if (target == bute->options.upper_bound) {
+            break;
+        }
         unsigned long long prev_helper_calls = bute->result.helper_calls;
         bool result = solve(bute, G, target, parent);
+        bute->result.last_decision_problem_helper_calls =
+                bute->result.helper_calls - prev_helper_calls;
         if (result) {
-            bute->result.treedepth = target;
-            bute->result.last_decision_problem_helper_calls =
-                    bute->result.helper_calls - prev_helper_calls;
-            return;
+            break;
         }
     }
+    bute->result.treedepth = target;
 }
 
 struct ButeOptions bute_default_options()
@@ -351,7 +354,8 @@ struct ButeOptions bute_default_options()
         .use_trie=1,
         .use_domination=1,
         .use_top_chain=1,
-        .print_stats=0
+        .print_stats=0,
+        .upper_bound=-1
     };
 }
 
