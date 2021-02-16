@@ -120,7 +120,7 @@ static struct ButeTrieNode *trie_node_add_child(struct ButeTrieNode *node)
     return &node->children[node->children_len - 1];
 }
 
-void bute_trie_add_element(struct ButeTrie *trie, setword *key_bitset, setword *aux_bitset, int val)
+void bute_trie_add_element(struct ButeTrie *trie, setword *key_bitset, setword *aux_bitset, size_t val)
 {
     struct ButeTrieNode *node = trie->root;
     bute_bitset_intersect_with(SUBTREE_INTERSECTION(node), key_bitset, trie->m);
