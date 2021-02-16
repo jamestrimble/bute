@@ -127,6 +127,84 @@ static void filter_roots(struct Bute *bute, struct ButeGraph G, setword *new_pos
 // avoid the overhead of the trie
 #define MIN_LEN_FOR_TRIE 1000
 
+struct STS_collection
+{
+    bool use_trie;
+
+    // The following fields are only needed if use_trie==true.  Otherwise,
+    // the query method simply returns a slice of the STSs array.
+    struct ButeTrie trie;
+    size_t *almost_subset_end_positions;
+    int m;
+    int root_depth;
+};
+
+void STS_collection_init(struct STS_collection *collection, struct Bute *bute,
+        size_t STSs_len, int root_depth)
+{
+    collection->use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
+    if (collection->use_trie) {
+        bute_trie_init(&collection->trie, bute->n, bute->m, bute);
+        collection->almost_subset_end_positions = bute_xmalloc(
+                STSs_len * sizeof *collection->almost_subset_end_positions);
+        collection->m = bute->m;
+        collection->root_depth = root_depth;
+    }
+}
+
+void STS_collection_destroy(struct STS_collection *collection)
+{
+    if (collection->use_trie) {
+        bute_trie_destroy(&collection->trie);
+        free(collection->almost_subset_end_positions);
+    }
+}
+
+void STS_collection_add(struct STS_collection *collection,
+        struct SetAndNeighbourhood *STS, size_t pos_in_array)
+{
+    if (collection->use_trie && collection->root_depth > bute_popcount(STS->nd, collection->trie.m)) {
+        bute_trie_add_element(&collection->trie, STS->nd, STS->set, pos_in_array);
+    }
+}
+
+struct SetAndNeighbourhoodPtrArr
+{
+    struct SetAndNeighbourhood **arr;
+    size_t len;
+};
+
+struct SetAndNeighbourhoodPtrArr STS_collection_query(struct STS_collection *collection,
+        struct SetAndNeighbourhood **STSs, size_t STSs_len, size_t current_STS_index,
+        setword *nd, setword *aux_set, int nd_popcount, struct SetAndNeighbourhood **filtered_STSs)
+{
+    if (!collection->use_trie) {
+        return (struct SetAndNeighbourhoodPtrArr) {STSs + current_STS_index + 1,
+                STSs_len - (current_STS_index + 1)};
+    }
+
+    size_t almost_subset_end_positions_len;
+    bute_trie_get_all_almost_subsets(&collection->trie, nd, aux_set, collection->root_depth - nd_popcount,
+            collection->almost_subset_end_positions, &almost_subset_end_positions_len);
+
+    size_t filtered_STSs_len = 0;
+    if (collection->root_depth == nd_popcount) {
+        size_t it = current_STS_index + 1;
+        while (it < STSs_len && bute_bitset_equals(nd, STSs[it]->nd, collection->m)) {
+            filtered_STSs[filtered_STSs_len++] = STSs[it++];
+        }
+    }
+    for (size_t j=0; j<almost_subset_end_positions_len; j++) {
+        size_t iter = collection->almost_subset_end_positions[j];
+        setword *first_nd_in_run = STSs[iter]->nd;
+        do {
+            filtered_STSs[filtered_STSs_len++] = STSs[iter];
+            --iter;
+        } while (iter > current_STS_index && bute_bitset_equals(first_nd_in_run, STSs[iter]->nd, collection->m));
+    }
+    return (struct SetAndNeighbourhoodPtrArr) {filtered_STSs, filtered_STSs_len};
+}
+
 static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_t STSs_len,
                              struct Bute *bute, struct ButeGraph G, setword *possible_STS_roots, setword *union_of_subtrees, setword *nd_of_union_of_subtrees,
                              int root_depth, struct ButeHashMap *set_root, struct SetAndNeighbourhoodVec *new_STSs)
@@ -143,13 +221,8 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
                 set_root, new_STSs, workspace);
     END_FOR_EACH_IN_BITSET
 
-    struct ButeTrie trie;
-    size_t *almost_subset_end_positions = NULL;
-    bool use_trie = bute->options.use_trie && STSs_len >= MIN_LEN_FOR_TRIE;
-    if (use_trie) {
-        bute_trie_init(&trie, G.n, G.m, bute);
-        almost_subset_end_positions = bute_xmalloc(STSs_len * sizeof *almost_subset_end_positions);
-    }
+    struct STS_collection STS_collection;
+    STS_collection_init(&STS_collection, bute, STSs_len, root_depth);
 
     struct SetAndNeighbourhood **filtered_STSs = bute_xmalloc(STSs_len * sizeof *filtered_STSs);
 
@@ -170,42 +243,20 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
         setword *new_union_of_subtrees_and_nd = workspace + G.m * 3;
         bute_bitset_union(new_union_of_subtrees_and_nd, new_union_of_subtrees, nd_of_new_union_of_subtrees, G.m);
 
-        struct SetAndNeighbourhood **candidates;
-        size_t candidates_len = 0;
+        struct SetAndNeighbourhoodPtrArr query_result = STS_collection_query(&STS_collection,
+                STSs, STSs_len, i, nd, new_union_of_subtrees_and_nd, nd_popcount, filtered_STSs);
         ++bute->result.queries;
-        if (use_trie) {
-            candidates = filtered_STSs;         // we'll filter in place afterwards
-            size_t almost_subset_end_positions_len;
-            bute_trie_get_all_almost_subsets(&trie, nd, new_union_of_subtrees_and_nd, root_depth - nd_popcount,
-                                             almost_subset_end_positions, &almost_subset_end_positions_len);
-            if (root_depth == nd_popcount) {
-                size_t it = i + 1;
-                while (it < STSs_len && bute_bitset_equals(nd, STSs[it]->nd, G.m)) {
-                    candidates[candidates_len++] = STSs[it++];
-                }
-            }
-            for (size_t j=0; j<almost_subset_end_positions_len; j++) {
-                size_t iter = almost_subset_end_positions[j];
-                setword *first_nd_in_run = STSs[iter]->nd;
-                do {
-                    candidates[candidates_len++] = STSs[iter];
-                    --iter;
-                } while (iter > i && bute_bitset_equals(first_nd_in_run, STSs[iter]->nd, G.m));
-            }
-        } else {
-            candidates = STSs + i+1;
-            candidates_len = STSs_len - (i+1);
-        }
+
         size_t filtered_STSs_len = 0;
-        for (size_t j=0; j<candidates_len; j++) {
-            struct SetAndNeighbourhood candidate = *candidates[j];
+        for (size_t j=0; j<query_result.len; j++) {
+            struct SetAndNeighbourhood candidate = *query_result.arr[j];
             if (bute_intersection_is_empty(candidate.nd, new_possible_STS_roots, G.m))
                 continue;
             if (bute_popcount_of_union(nd_of_new_union_of_subtrees, candidate.nd, G.m) > root_depth)
                 continue;
             if (!bute_intersection_is_empty(new_union_of_subtrees_and_nd, candidate.set, G.m))
                 continue;
-            filtered_STSs[filtered_STSs_len++] = candidates[j];
+            filtered_STSs[filtered_STSs_len++] = query_result.arr[j];
         }
 
         filter_roots(bute, G, new_possible_STS_roots, filtered_STSs, filtered_STSs_len,
@@ -218,15 +269,10 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
                     nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs);
         }
 
-        if (use_trie && root_depth > nd_popcount) {
-            bute_trie_add_element(&trie, nd, s, i);
-        }
+        STS_collection_add(&STS_collection, STSs[i], i);
     }
     free(filtered_STSs);
-    if (use_trie) {
-        bute_trie_destroy(&trie);
-        free(almost_subset_end_positions);
-    }
+    STS_collection_destroy(&STS_collection);
 }
 
 static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct ButeGraph G,
