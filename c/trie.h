@@ -5,6 +5,8 @@
 
 struct ButeTrieNode;
 
+struct ButeTrieArena;
+
 struct ButeTrie
 {
     struct ButeTrieNode *root;
@@ -12,6 +14,7 @@ struct ButeTrie
     int graph_n;
     int m;
     struct Bute *bute;
+    struct ButeTrieArena *bitset_arenas;
 };
 
 void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute);
