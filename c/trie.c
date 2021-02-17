@@ -9,32 +9,6 @@
 #define SUBTREE_INTERSECTION(node) (node->bitsets)
 #define SUBTREE_INTERSECTION_OF_AUX_BITSETS(node) (node->bitsets + trie->m)
 
-#define ARENA_SIZE 2045
-
-// An arena for bitsets
-struct ButeTrieArena
-{
-    struct ButeTrieArena *next;
-    size_t sz;
-    setword bitsets[];
-};
-
-static void add_arena(struct ButeTrie *trie)
-{
-    struct ButeTrieArena *arena = bute_xmalloc(sizeof *arena + 2 * trie->m * ARENA_SIZE * sizeof(setword));
-    arena->next = trie->bitset_arenas;
-    arena->sz = 0;
-    trie->bitset_arenas = arena;
-}
-
-static setword *get_pair_of_bitsets(struct ButeTrie *trie)
-{
-    if (trie->bitset_arenas->sz == ARENA_SIZE) {
-        add_arena(trie);
-    }
-    return trie->bitset_arenas->bitsets + 2 * trie->m * trie->bitset_arenas->sz++;
-}
-
 struct ButeTrieNode
 {
     unsigned children_len;
@@ -58,7 +32,7 @@ static void trie_node_init(struct ButeTrie *trie, struct ButeTrieNode *node, int
     node->children = NULL;
     node->children_len = 0;
     node->children_capacity = 0;
-    node->bitsets = get_pair_of_bitsets(trie);
+    node->bitsets = bute_get_pair_of_bitsets(&trie->bitset_arenas, trie->m);
     for (int i=0; i<trie->m; i++) {
         SUBTREE_INTERSECTION(node)[i] = initial_subtrie_intersection[i];
         SUBTREE_INTERSECTION_OF_AUX_BITSETS(node)[i] = initial_subtrie_intersection_of_aux_sets[i];
@@ -70,8 +44,8 @@ void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute)
     trie->graph_n = n;
     trie->m = m;
     trie->bute = bute;
-    trie->bitset_arenas = NULL;
-    add_arena(trie);
+    trie->bitset_arenas.head = NULL;
+    bute_add_arena(&trie->bitset_arenas, m);
     setword *full_bitset = bute_xmalloc(m * sizeof(setword));
     bute_bitset_set_first_k_bits(full_bitset, trie->graph_n);
     trie->root = bute_xmalloc(sizeof(struct ButeTrieNode));
@@ -91,12 +65,7 @@ void bute_trie_destroy(struct ButeTrie *trie)
 {
     trie_node_destroy(trie, trie->root);
     free(trie->root);
-    struct ButeTrieArena *arena = trie->bitset_arenas;
-    while (arena) {
-        struct ButeTrieArena *next_arena = arena->next;
-        free(arena);
-        arena = next_arena;
-    }
+    bute_free_arenas(trie->bitset_arenas);
 }
 
 static struct ButeTrieNode *trie_get_child_node(struct ButeTrieNode *node, int key)

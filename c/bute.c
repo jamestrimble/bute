@@ -1,5 +1,6 @@
 #include "bute.h"
 #include "bitset.h"
+#include "bitset_arena.h"
 #include "bute_solver.h"
 #include "graph.h"
 #include "hash_map.h"
@@ -24,6 +25,8 @@ struct SetAndNeighbourhoodVec
     struct SetAndNeighbourhood *vals;
     size_t capacity;
     size_t len;
+
+    struct ButeListOfBitsetArenas bitset_arenas;
 };
 
 static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, struct SetAndNeighbourhood val)
@@ -38,13 +41,16 @@ static void SetAndNeighbourhoodVec_push(struct SetAndNeighbourhoodVec *vec, stru
     vec->vals[vec->len++] = val;
 }
 
+static void SetAndNeighbourhoodVec_init(struct SetAndNeighbourhoodVec *vec, int m)
+{
+    *vec = (struct SetAndNeighbourhoodVec) {0};
+    bute_add_arena(&vec->bitset_arenas, m);
+}
+
 static void SetAndNeighbourhoodVec_destroy(struct SetAndNeighbourhoodVec *vec)
 {
-    for (size_t i=0; i<vec->len; i++) {
-        // we don't need to free .nd, because .set and .nd were allocated together
-        free(vec->vals[i].set);
-    }
     free(vec->vals);
+    bute_free_arenas(vec->bitset_arenas);
 }
 
 static int cmp_nd_popcount_desc(const void *a, const void *b) {
@@ -89,7 +95,7 @@ static void try_adding_STS_root(struct Bute *bute, struct ButeGraph G, int w, se
         if (bute_intersection_is_empty(bute->vv_dominated_by[w], adj_vv, G.m) &&
             bute_intersection_is_empty(bute->vv_that_dominate[w], STS, G.m)) {
             if (bute_hash_add_or_update(set_root, STS, w, root_depth)) {
-                setword *bitsets = bute_xmalloc(2 * G.m * sizeof(setword));
+                setword *bitsets = bute_get_pair_of_bitsets(&new_STSs->bitset_arenas, G.m);
                 setword *set = bitsets;
                 setword *nd = bitsets + G.m;
                 bute_bitset_copy(set, STS, G.m);
@@ -278,7 +284,8 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
 static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *STSs, struct Bute *bute, struct ButeGraph G,
         int root_depth, struct ButeHashMap *set_root)
 {
-    struct SetAndNeighbourhoodVec new_STSs = {NULL, 0, 0};
+    struct SetAndNeighbourhoodVec new_STSs;
+    SetAndNeighbourhoodVec_init(&new_STSs, bute->m);
 
     struct SetAndNeighbourhood **STSs_pointers = bute_xmalloc(STSs->len * sizeof *STSs_pointers);
     for (size_t i=0; i<STSs->len; i++) {
@@ -320,7 +327,8 @@ static bool solve(struct Bute *bute, struct ButeGraph G, int target, int *parent
     struct ButeHashMap set_root;
     bute_hash_init(&set_root, bute);
 
-    struct SetAndNeighbourhoodVec STSs = {NULL, 0, 0};
+    struct SetAndNeighbourhoodVec STSs;
+    SetAndNeighbourhoodVec_init(&STSs, bute->m);
 
     for (int root_depth=target; root_depth>=1; root_depth--) {
         size_t prev_set_root_size = set_root.sz;

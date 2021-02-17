@@ -2,10 +2,9 @@
 #define TRIE_H
 
 #include "bitset.h"
+#include "bitset_arena.h"
 
 struct ButeTrieNode;
-
-struct ButeTrieArena;
 
 struct ButeTrie
 {
@@ -14,7 +13,7 @@ struct ButeTrie
     int graph_n;
     int m;
     struct Bute *bute;
-    struct ButeTrieArena *bitset_arenas;
+    struct ButeListOfBitsetArenas bitset_arenas;
 };
 
 void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute);
