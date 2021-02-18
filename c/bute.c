@@ -75,9 +75,7 @@ static int cmp_nd_popcount_desc(const void *a, const void *b) {
 static int cmp_sorted_position(const void *a, const void *b) {
     const struct SetAndNeighbourhood *pa = *((const struct SetAndNeighbourhood **) a);
     const struct SetAndNeighbourhood *pb = *((const struct SetAndNeighbourhood **) b);
-    if (pa < pb)
-        return -1;
-    return pa > pb;
+    return (pa > pb) - (pa < pb);
 }
 
 static void try_adding_STS_root(struct Bute *bute, struct ButeGraph G, int w, setword *union_of_subtrees,
