@@ -180,12 +180,14 @@ struct SetAndNeighbourhoodPtrArr
 
 struct SetAndNeighbourhoodPtrArr STS_collection_query(struct STS_collection *collection,
         struct SetAndNeighbourhood **STSs, size_t STSs_len, size_t current_STS_index,
-        setword *nd, setword *aux_set, int nd_popcount, struct SetAndNeighbourhood **filtered_STSs)
+        setword *nd, setword *aux_set, struct SetAndNeighbourhood **filtered_STSs)
 {
     if (!collection->use_trie) {
         return (struct SetAndNeighbourhoodPtrArr) {STSs + current_STS_index + 1,
                 STSs_len - (current_STS_index + 1)};
     }
+
+    int nd_popcount = bute_popcount(nd, collection->m);
 
     size_t almost_subset_end_positions_len;
     bute_trie_get_all_almost_subsets(&collection->trie, nd, aux_set, collection->root_depth - nd_popcount,
@@ -233,7 +235,6 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
     for (size_t i=STSs_len; i--; ) {
         setword *s = STSs[i]->set;
         setword *nd = STSs[i]->nd;
-        int nd_popcount = bute_popcount(nd, G.m);
         setword *new_possible_STS_roots = workspace;
         bute_bitset_copy(new_possible_STS_roots, possible_STS_roots, G.m);
         bute_bitset_intersect_with(new_possible_STS_roots, nd, G.m);
@@ -248,7 +249,8 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
         bute_bitset_union(new_union_of_subtrees_and_nd, new_union_of_subtrees, nd_of_new_union_of_subtrees, G.m);
 
         struct SetAndNeighbourhoodPtrArr query_result = STS_collection_query(&STS_collection,
-                STSs, STSs_len, i, nd, new_union_of_subtrees_and_nd, nd_popcount, filtered_STSs);
+                STSs, STSs_len, i, nd_of_new_union_of_subtrees, new_union_of_subtrees_and_nd,
+                filtered_STSs);
         ++bute->result.queries;
 
         size_t filtered_STSs_len = 0;
