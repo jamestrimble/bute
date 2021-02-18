@@ -267,6 +267,11 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
                 new_union_of_subtrees, nd_of_new_union_of_subtrees, root_depth, workspace + 4 * G.m);
 
         if (!bute_bitset_is_empty(new_possible_STS_roots, G.m)) {
+            // At this point, there might some members of filtered_STSs whose neighbourhoods have
+            // empty intersection with new_possible_STS_roots.  We coulde remove these from
+            // filtered_STSs, and when I tried this it gave a small (5% or so) speedup on some
+            // instances.  For simplicity, the current version of the code doesn't do this
+            // filtering step.
             qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
             make_STSs_helper(depth+1, filtered_STSs, filtered_STSs_len, bute, G,
                     new_possible_STS_roots, new_union_of_subtrees,
