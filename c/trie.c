@@ -33,10 +33,8 @@ static void trie_node_init(struct ButeTrie *trie, struct ButeTrieNode *node, int
     node->children_len = 0;
     node->children_capacity = 0;
     node->bitsets = bute_get_pair_of_bitsets(&trie->bitset_arenas, trie->m);
-    for (int i=0; i<trie->m; i++) {
-        SUBTREE_INTERSECTION(node)[i] = initial_subtrie_intersection[i];
-        SUBTREE_INTERSECTION_OF_AUX_BITSETS(node)[i] = initial_subtrie_intersection_of_aux_sets[i];
-    }
+    bute_bitset_copy(SUBTREE_INTERSECTION(node), initial_subtrie_intersection, trie->m);
+    bute_bitset_copy(SUBTREE_INTERSECTION_OF_AUX_BITSETS(node), initial_subtrie_intersection_of_aux_sets, trie->m);
 }
 
 void bute_trie_init(struct ButeTrie *trie, int n, int m, struct Bute *bute)
