@@ -1,7 +1,5 @@
 package bute;
 
-import tw.exact.XBitSet;
-
 class FastBitSet {
     // The following two constants are from the Java BitSet source
     private final static int ADDRESS_BITS_PER_WORD = 6;
@@ -17,14 +15,6 @@ class FastBitSet {
 
     FastBitSet(FastBitSet other) {
         words = other.words.clone();
-    }
-
-    FastBitSet(int nbits, XBitSet other) {
-        this(nbits);
-        long[] otherLongs = other.toLongArray();
-        for (int i=0; i<otherLongs.length; i++) {
-            words[i] = otherLongs[i];
-        }
     }
 
     FastBitSet unionWith(FastBitSet other) {

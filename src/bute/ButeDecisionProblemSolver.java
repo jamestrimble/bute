@@ -3,11 +3,8 @@ package bute;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import tw.exact.Graph;
-import tw.exact.XBitSet;
-
 class ButeDecisionProblemSolver {
-    final Graph g;
+    final ButeGraph g;
     final int n;
     final Dom dom;
     final int target;
@@ -16,7 +13,7 @@ class ButeDecisionProblemSolver {
     FastBitSet[] neighbourSets;
     static final int MIN_LEN_FOR_TRIE = 1000;
 
-    ButeDecisionProblemSolver(Graph g, Dom dom, int target, ButeOptions options) {
+    ButeDecisionProblemSolver(ButeGraph g, Dom dom, int target, ButeOptions options) {
         this.g = g;
         this.n = g.n;
         this.dom = dom;
@@ -25,19 +22,34 @@ class ButeDecisionProblemSolver {
 
         neighbourSets = new FastBitSet[n];
         for (int i=0; i<n; i++) {
-            neighbourSets[i] = new FastBitSet(n, g.neighborSet[i]);
+            neighbourSets[i] = new FastBitSet(g.neighbourSets[i]);
         }
     }
 
     ArrayList<FastBitSet> getComponentsInInducedSubgraph(FastBitSet vv) {
-        XBitSet vvComplement = (XBitSet) g.all.clone();
+        ArrayList<FastBitSet> result = new ArrayList<FastBitSet>();
+        FastBitSet visited = new FastBitSet(n);
+        FastBitSet vvInPrevComponents = new FastBitSet(n);
+        Queue<Integer> queue = new ArrayDeque<>();
         for (int v : vv.toArray()) {
-            vvComplement.clear(v);
+            if (visited.get(v)) {
+                continue;
+            }
+            visited.set(v);
+            queue.add(v);
+            while (!queue.isEmpty()) {
+                int u = queue.remove();
+                for (int w : g.neighbourSets[u].toArray()) {
+                    if (vv.get(w) && !visited.get(w)) {
+                        visited.set(w);
+                        queue.add(w);
+                    }
+                }
+            }
+            result.add(visited.subtract(vvInPrevComponents));
+            vvInPrevComponents.or(visited);
         }
-        return g.getComponents(vvComplement)
-            .stream()
-            .map(set -> new FastBitSet(n, set))
-            .collect(Collectors.toCollection(ArrayList::new));
+        return result;
     }
 
     void tryAddingStsRoot(int w, FastBitSet unionOfSubtrees,

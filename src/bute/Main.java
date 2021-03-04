@@ -1,6 +1,6 @@
 package bute;
 
-import tw.exact.Graph;
+import java.io.*;
 
 class Main {
     static void printHelp() {
@@ -11,7 +11,7 @@ class Main {
         System.err.println("  --print-stats     Print stats");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         boolean useTrie = true;
         boolean useDomination = true;
         boolean lookForTopChain = true;
@@ -35,7 +35,8 @@ class Main {
         }
         ButeOptions options = new ButeOptions(useTrie, useDomination,
                 lookForTopChain, vertexDriven);
-        Graph g = Graph.readGraph(System.in);
+        ButeGraph g = ButeGraph.readGraph(System.in);
+//        Graph g = Graph.readGraph(System.in);
         ButeSolver solver = new ButeSolver(g, options);
         TreedepthResult result = solver.solve();
         if (printStats) {

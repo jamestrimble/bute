@@ -1,13 +1,11 @@
 package bute;
 
-import tw.exact.Graph;
-
 class ButeSolver {
-    final Graph g;
+    final ButeGraph g;
     final int n;
     final ButeOptions options;
 
-    ButeSolver(Graph g, ButeOptions options) {
+    ButeSolver(ButeGraph g, ButeOptions options) {
         this.g = g;
         this.n = g.n;
         this.options = options;

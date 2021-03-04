@@ -1,9 +1,0 @@
-#!/bin/bash
-
-mkdir -p src/tw/exact
-
-curl -o src/tw/exact/Graph.java https://raw.githubusercontent.com/TCS-Meiji/PACE2017-TrackA/adf77d72dce470b025c6d7fcf20220a351913555/tw/exact/Graph.java
-curl -o src/tw/exact/XBitSet.java https://raw.githubusercontent.com/TCS-Meiji/PACE2017-TrackA/adf77d72dce470b025c6d7fcf20220a351913555/tw/exact/XBitSet.java
-
-# Allow any value for the second token of the instance file's 'p' line
-sed -i.bak 's/.*!!Not treewidth instance/\/\/\0/' src/tw/exact/Graph.java 
