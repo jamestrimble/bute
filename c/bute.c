@@ -7,11 +7,15 @@
 #include "trie.h"
 #include "util.h"
 
+#include "sort_r.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#define UNUSED(x) (void)(x)   // to avoid compiler warnings
 
 struct SetAndNeighbourhood
 {
@@ -53,7 +57,8 @@ static void SetAndNeighbourhoodVec_destroy(struct SetAndNeighbourhoodVec *vec)
     bute_free_arenas(vec->bitset_arenas);
 }
 
-static int cmp_nd_popcount_desc(const void *a, const void *b) {
+static int cmp_nd_popcount_desc(const void *a, const void *b, void *unused) {
+    UNUSED(unused);
     const struct SetAndNeighbourhood sa = *(const struct SetAndNeighbourhood *) a;
     const struct SetAndNeighbourhood sb = *(const struct SetAndNeighbourhood *) b;
     int pca = bute_popcount(sa.nd, sa.m);
@@ -72,7 +77,8 @@ static int cmp_nd_popcount_desc(const void *a, const void *b) {
     return bute_bitset_compare(sa.set, sb.set, sa.m);
 }
 
-static int cmp_sorted_position(const void *a, const void *b) {
+static int cmp_sorted_position(const void *a, const void *b, void *unused) {
+    UNUSED(unused);
     const struct SetAndNeighbourhood *pa = *((const struct SetAndNeighbourhood **) a);
     const struct SetAndNeighbourhood *pb = *((const struct SetAndNeighbourhood **) b);
     return (pa > pb) - (pa < pb);
@@ -274,7 +280,7 @@ static void make_STSs_helper(int depth, struct SetAndNeighbourhood **STSs, size_
             // filtered_STSs, and when I tried this it gave a small (5% or so) speedup on some
             // instances.  For simplicity, the current version of the code doesn't do this
             // filtering step.
-            qsort(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position);
+            sort_r(filtered_STSs, filtered_STSs_len, sizeof *filtered_STSs, cmp_sorted_position, NULL);
             make_STSs_helper(depth+1, filtered_STSs, filtered_STSs_len, bute, G,
                     new_possible_STS_roots, new_union_of_subtrees,
                     nd_of_new_union_of_subtrees, root_depth, set_root, new_STSs);
@@ -306,7 +312,7 @@ static struct SetAndNeighbourhoodVec make_STSs(struct SetAndNeighbourhoodVec *ST
     make_STSs_helper(0, STSs_pointers, STSs->len, bute, G, full_set, empty_set,
             empty_set, root_depth, set_root, &new_STSs);
 
-    qsort(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc);
+    sort_r(new_STSs.vals, new_STSs.len, sizeof(struct SetAndNeighbourhood), cmp_nd_popcount_desc, NULL);
     free(bitsets);
     free(STSs_pointers);
     return new_STSs;

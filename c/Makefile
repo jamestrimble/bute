@@ -16,7 +16,7 @@ clean:
 bitset_arena.o: bitset_arena.c bitset_arena.h bitset.h util.h
 bitset.o: bitset.c bitset.h bute_solver.h bute.h util.h
 bute.o: bute.c bute.h bitset.h bitset_arena.h bute_solver.h graph.h \
- hash_map.h trie.h util.h
+ hash_map.h trie.h util.h sort_r.h
 bute_main.o: bute_main.c bute.h
 bute_solver.o: bute_solver.c bute_solver.h bitset.h bute.h graph.h util.h
 graph.o: graph.c bitset.h graph.h util.h
